@@ -248,10 +248,10 @@ function decorateEdu(e) {
   else if (e.status === '지연') sc = { color:'#D64545', bg:'#fbe7e7' };
   else sc = { color:'#E08600', bg:'#fdf0db' };
   const km = e.kind === '신규' ? { color:'#1f3864', bg:'#e7ecf5' } : { color:'#7d756c', bg:'#f0eee9' };
-  let ddText, ddColor;
-  if (e.status === '완료') { ddText = '완료'; ddColor = '#2E9E5B'; }
-  else if (dd < 0) { ddText = 'D+'+(-dd); ddColor = '#D64545'; }
-  else { ddText = 'D-'+dd; ddColor = dd <= 14 ? '#D64545' : dd <= 30 ? '#E08600' : '#7d756c'; }
+  let ddayText, ddayColor;
+  if (e.status === '완료') { ddayText = '완료'; ddayColor = '#2E9E5B'; }
+  else if (dd < 0) { ddayText = 'D+'+(-dd); ddayColor = '#D64545'; }
+  else { ddayText = 'D-'+dd; ddayColor = dd <= 14 ? '#D64545' : dd <= 30 ? '#E08600' : '#7d756c'; }
   return { ...e, dd, statusColor: sc.color, statusBg: sc.bg, kindColor: km.color, kindBg: km.bg, ddayText, ddayColor };
 }
 
