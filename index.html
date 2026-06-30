@@ -95,6 +95,10 @@ tbody tr.selected-blue{background:#eef1f7}
     </div>
     <nav id="topnav" style="flex:1;display:flex;align-items:center;gap:30px;height:100%"></nav>
     <div style="display:flex;align-items:center;gap:16px;flex:none">
+      <div id="fb-status" title="Firebase 연결 상태" style="display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;padding:5px 11px;border-radius:14px;border:1px solid #e0ddd8;background:#f7f5f2;color:#9a948c">
+        <span id="fb-dot" style="width:8px;height:8px;border-radius:50%;background:#c3bdb5;display:inline-block"></span>
+        <span id="fb-label">연결 확인 중…</span>
+      </div>
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:13.5px;font-weight:700;color:#3b3530">김다밭님</span>
         <span style="width:30px;height:30px;border-radius:50%;background:#f0ece6;border:1px solid #e0ddd8;display:flex;align-items:center;justify-content:center;font-size:14px">👤</span>
@@ -111,7 +115,26 @@ tbody tr.selected-blue{background:#eef1f7}
   </div>
 </div>
 
-<script>
+<script type="module">
+// ─── FIREBASE ────────────────────────────────────────────────────────────────
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import {
+  getFirestore, collection, doc, getDocs, onSnapshot,
+  updateDoc, addDoc, deleteDoc, writeBatch
+} from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDcBVi5KLD4sFfZLWsdAyB63ct0npawRxg",
+  authDomain: "hanwha-test-38201.firebaseapp.com",
+  projectId: "hanwha-test-38201",
+  storageBucket: "hanwha-test-38201.firebasestorage.app",
+  messagingSenderId: "590292707143",
+  appId: "1:590292707143:web:ad143a27d3c649a5140e62"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
 // ─── DATA ───────────────────────────────────────────────────────────────────
 
 const TODAY = new Date('2026-06-30T00:00:00');
@@ -201,9 +224,15 @@ const state = {
   registerFilter: 'all',
   selectedRegisterId: null,
   legiFilter: 'all',
-  compliance: JSON.parse(JSON.stringify(COMPLIANCE_SEED)),
-  edu: JSON.parse(JSON.stringify(EDU_SEED)),
-  register: JSON.parse(JSON.stringify(REGISTER_SEED)),
+  // ── Firebase 연결/로딩 상태 ──
+  conn: 'connecting',   // connecting | connected | error
+  connError: '',
+  loading: true,
+  // ── Firestore에서 로드되는 데이터 (초기값은 빈 배열) ──
+  compliance: [],
+  edu: [],
+  register: [],
+  legi: [],
 };
 
 let currentDraftMemo = '';
@@ -896,7 +925,7 @@ function renderVariantSwitcher(variantInfo) {
 
 function renderRegister() {
   const legiFilterOptions = [['all','전체'],['검토전','검토전'],['검토중','검토중'],['완료','완료']];
-  const filteredLegi = state.legiFilter === 'all' ? LEGI_SEED : LEGI_SEED.filter(l => l.status === state.legiFilter);
+  const filteredLegi = state.legiFilter === 'all' ? state.legi : state.legi.filter(l => l.status === state.legiFilter);
   const registerFilterOptions = [['all','전체'],['완료','완료'],['진행중','진행중'],['미흡','미흡']];
   const filteredRegister = state.registerFilter === 'all' ? state.register : state.register.filter(r => r.status === state.registerFilter);
   const selReg = state.register.find(r => r.id === state.selectedRegisterId);
@@ -931,7 +960,7 @@ function renderRegister() {
       <div>
         ${filteredLegi.map(l => {
           const ss = legiStatusStyle(l.status);
-          const ddNum = l.dday;
+          const ddNum = dday(l.closingDate);
           const isPast = ddNum < 0;
           return `<div class="legi-row">
             <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:52px">
@@ -1072,7 +1101,38 @@ function renderRegDetail(r) {
 
 // ─── RENDER: MAIN ────────────────────────────────────────────────────────────
 
+function renderLoading() {
+  return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:90px 24px;color:#9a948c">
+    <div style="width:42px;height:42px;border:4px solid #ece9e5;border-top-color:#F39200;border-radius:50%;animation:fbspin 0.8s linear infinite"></div>
+    <div style="font-size:14px;font-weight:600">Firebase Firestore에서 데이터를 불러오는 중…</div>
+    <style>@keyframes fbspin{to{transform:rotate(360deg)}}</style>
+  </div>`;
+}
+
+function renderConnError() {
+  return `<div style="display:flex;justify-content:center;padding:60px 24px">
+    <div style="max-width:560px;width:100%;background:#fff;border:1px solid #f1c4c4;border-radius:10px;overflow:hidden">
+      <div style="background:#fbe7e7;padding:16px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f1c4c4">
+        <span style="font-size:20px">⚠️</span>
+        <span style="font-size:15px;font-weight:700;color:#b83232">Firebase 연결 실패</span>
+      </div>
+      <div style="padding:18px 20px">
+        <div style="font-size:13px;line-height:1.7;color:#5c554e;margin-bottom:14px">Firestore에 연결하지 못했습니다. 아래 오류 메시지를 확인하세요.</div>
+        <div style="font-size:12.5px;font-family:monospace;color:#b83232;background:#faf3f3;border:1px solid #f1d6d6;border-radius:6px;padding:11px 13px;word-break:break-all;margin-bottom:16px">${esc(state.connError)}</div>
+        <div style="font-size:12.5px;line-height:1.7;color:#7d756c;background:#f8f6f3;border:1px solid #efece8;border-radius:6px;padding:12px 14px">
+          <div style="font-weight:700;color:#5c554e;margin-bottom:6px">자주 발생하는 원인</div>
+          • <b>Missing or insufficient permissions</b> → Firestore 보안 규칙이 막혀 있습니다. Firebase 콘솔 → Firestore Database → 규칙에서 테스트 모드로 변경하세요.<br>
+          • <b>Firestore가 아직 생성되지 않음</b> → Firebase 콘솔에서 Firestore Database를 먼저 생성하세요.<br>
+          • 네트워크 차단 / 잘못된 프로젝트 설정
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderContent() {
+  if (state.conn === 'error') return renderContentTopbar() + renderConnError();
+  if (state.loading) return renderContentTopbar() + renderLoading();
   let screenHtml = '';
   if (state.screen === 'main') screenHtml = renderMain();
   else if (state.screen === 'edu') screenHtml = renderEdu();
@@ -1081,10 +1141,31 @@ function renderContent() {
   return renderContentTopbar() + screenHtml;
 }
 
+function updateFbStatus() {
+  const box = document.getElementById('fb-status');
+  const dot = document.getElementById('fb-dot');
+  const label = document.getElementById('fb-label');
+  if (!box || !dot || !label) return;
+  if (state.conn === 'connected') {
+    dot.style.background = '#2E9E5B';
+    label.textContent = 'Firebase 연결됨';
+    box.style.color = '#2E9E5B'; box.style.background = '#e7f4ec'; box.style.borderColor = '#bfe3cd';
+  } else if (state.conn === 'error') {
+    dot.style.background = '#D64545';
+    label.textContent = '연결 실패';
+    box.style.color = '#D64545'; box.style.background = '#fbe7e7'; box.style.borderColor = '#f1c4c4';
+  } else {
+    dot.style.background = '#E08600';
+    label.textContent = '연결 확인 중…';
+    box.style.color = '#c9760a'; box.style.background = '#fdf0db'; box.style.borderColor = '#f3d9b3';
+  }
+}
+
 function render() {
   document.getElementById('topnav').innerHTML = renderTopnav();
   document.getElementById('sidebar').innerHTML = renderSidebar();
   document.getElementById('content').innerHTML = renderContent();
+  updateFbStatus();
   bindEvents();
 
   // restore textarea focus/value after re-render
@@ -1124,14 +1205,12 @@ document.addEventListener('click', function(e) {
   if (markComplete) {
     const id = markComplete.dataset.eduId;
     if (!id) return;
-    const newEdu = state.edu.map(e => {
-      if (e.id !== id || e.status === '완료') return e;
-      const yrs = e.cycle === '분기' ? 0.25 : 2;
-      const d = new Date('2026-06-30T00:00:00');
-      d.setMonth(d.getMonth() + Math.round(yrs * 12));
-      return { ...e, status:'완료', last:'2026-06-30', next: d.toISOString().slice(0,10) };
-    });
-    setState({ edu: newEdu });
+    const e = state.edu.find(x => x.id === id);
+    if (!e || e.status === '완료') return;
+    const yrs = e.cycle === '분기' ? 0.25 : 2;
+    const d = new Date('2026-06-30T00:00:00');
+    d.setMonth(d.getMonth() + Math.round(yrs * 12));
+    fsUpdate('edu', id, { status:'완료', last:'2026-06-30', next: d.toISOString().slice(0,10) });
     return;
   }
 
@@ -1170,8 +1249,8 @@ document.addEventListener('click', function(e) {
   const toggleApplies = t.closest('[data-toggle-applies]');
   if (toggleApplies) {
     const id = toggleApplies.dataset.toggleApplies;
-    const newCompliance = state.compliance.map(r => r.id === id ? { ...r, applies: !r.applies, updated:'2026-06-30' } : r);
-    setState({ compliance: newCompliance });
+    const rec = state.compliance.find(r => r.id === id);
+    if (rec) fsUpdate('compliance', id, { applies: !rec.applies, updated:'2026-06-30' });
     return;
   }
 
@@ -1179,8 +1258,7 @@ document.addEventListener('click', function(e) {
   if (setStatus) {
     const id = setStatus.dataset.setStatus;
     const val = setStatus.dataset.statusVal;
-    const newCompliance = state.compliance.map(r => r.id === id ? { ...r, status: val, updated:'2026-06-30' } : r);
-    setState({ compliance: newCompliance });
+    fsUpdate('compliance', id, { status: val, updated:'2026-06-30' });
     return;
   }
 
@@ -1189,9 +1267,8 @@ document.addEventListener('click', function(e) {
     const id = saveMemo.dataset.saveMemo;
     const ta = document.getElementById('law-detail-memo');
     const text = ta ? ta.value : currentDraftMemo;
-    const newCompliance = state.compliance.map(r => r.id === id ? { ...r, response: text, updated:'2026-06-30' } : r);
     currentDraftMemo = text;
-    setState({ compliance: newCompliance });
+    fsUpdate('compliance', id, { response: text, updated:'2026-06-30' });
     return;
   }
 
@@ -1244,9 +1321,69 @@ document.addEventListener('input', function(e) {
   }
 });
 
+// ─── FIRESTORE MUTATIONS ─────────────────────────────────────────────────────
+
+async function fsUpdate(coll, id, data) {
+  try {
+    await updateDoc(doc(db, coll, id), data);
+  } catch (err) {
+    console.error('Firestore 업데이트 실패:', err);
+    alert('저장에 실패했습니다: ' + err.message);
+  }
+}
+
+// ─── SEED & LISTENERS ────────────────────────────────────────────────────────
+
+// 최초 1회: Firestore가 비어 있으면 초기 데이터를 시드한다.
+async function seedIfEmpty() {
+  const snap = await getDocs(collection(db, 'compliance'));
+  if (!snap.empty) return;
+  const batch = writeBatch(db);
+  COMPLIANCE_SEED.forEach(({ id, ...data }) => batch.set(doc(db, 'compliance', id), data));
+  EDU_SEED.forEach(({ id, ...data }) => batch.set(doc(db, 'edu', id), data));
+  LEGI_SEED.forEach(({ id, ...data }) => batch.set(doc(db, 'legi', id), data));
+  REGISTER_SEED.forEach(({ id, ...data }) => batch.set(doc(db, 'register', id), data));
+  await batch.commit();
+}
+
+function setupListeners() {
+  const loadedSet = new Set();
+  const mark = (name) => {
+    state.conn = 'connected';
+    loadedSet.add(name);
+    if (loadedSet.size >= 4) state.loading = false;
+    render();
+  };
+  const onErr = (err) => {
+    console.error('Firestore 리스너 오류:', err);
+    state.conn = 'error';
+    state.connError = err.message;
+    state.loading = false;
+    render();
+  };
+  onSnapshot(collection(db, 'compliance'), s => { state.compliance = s.docs.map(d => ({ id:d.id, ...d.data() })); mark('compliance'); }, onErr);
+  onSnapshot(collection(db, 'edu'),        s => { state.edu        = s.docs.map(d => ({ id:d.id, ...d.data() })); mark('edu'); }, onErr);
+  onSnapshot(collection(db, 'register'),   s => { state.register   = s.docs.map(d => ({ id:d.id, ...d.data() })); mark('register'); }, onErr);
+  onSnapshot(collection(db, 'legi'),       s => { state.legi       = s.docs.map(d => ({ id:d.id, ...d.data() })); mark('legi'); }, onErr);
+}
+
 // ─── INIT ────────────────────────────────────────────────────────────────────
 
-render();
+async function init() {
+  render(); // 로딩 화면 표시
+  try {
+    await seedIfEmpty();
+    setupListeners();
+  } catch (err) {
+    console.error('Firebase 초기화 실패:', err);
+    state.conn = 'error';
+    state.connError = err.message;
+    state.loading = false;
+    render();
+  }
+}
+
+init();
 </script>
 </body>
 </html>
