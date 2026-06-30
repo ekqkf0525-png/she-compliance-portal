@@ -17,15 +17,17 @@ import { XMLParser } from 'fast-xml-parser';
 
 // ── 설정 ──────────────────────────────────────────────────────────────────────
 
-// ⚠️ 엔드포인트는 데이터셋(15058407) 명세의 '요청주소'로 확정하세요.
-// 확정 전에는 레포 Variable DATA_API_URL 로 덮어쓸 수 있습니다.
-const API_URL = process.env.DATA_API_URL
-  || 'https://apis.data.go.kr/1170000/law/lawSearchList.do';
+// odcloud 표준 API (namespace 15123431/v1).
+// 요청주소의 '전체 경로'(uddi 리소스 포함)를 Swagger에서 복사해
+// 레포 Variable DATA_API_URL 로 지정하세요.
+//   Swagger: https://infuser.odcloud.kr/oas/docs?namespace=15123431/v1
+//   예) https://api.odcloud.kr/api/15123431/v1/uddi:xxxxxxxx-....
+const API_URL = process.env.DATA_API_URL || '';
 
-const SERVICE_KEY = process.env.DATA_GO_KR_KEY || '';
+const SERVICE_KEY = process.env.DATA_GO_KR_KEY || '';   // Decoding 키 권장(스크립트가 인코딩)
 const SA_JSON = process.env.FIREBASE_SERVICE_ACCOUNT || '';
 
-const NUM_ROWS = 100;   // 페이지당 건수
+const PER_PAGE = 100;   // 페이지당 건수 (odcloud perPage)
 const MAX_PAGES = 5;    // 최근 최대 500건만 훑어 필터링
 
 // 우리 부서 관련 법령(법령명에 아래 키워드가 포함되면 대상)
@@ -38,13 +40,13 @@ const DEMO_LEGI_IDS = ['l1', 'l2', 'l3', 'l4', 'l5'];
 
 // 응답 필드명 후보(명세 확정 전 방어적 매핑)
 const F = {
-  id:      ['입법예고일련번호', '일련번호', '입법예고ID', 'bilId', 'lsSeq', 'lawSeq', 'seq', 'id'],
-  law:     ['법령명', '법령명한글', '입법예고명', '안건명', 'lawNm', 'lsNm', 'bilNm', 'title', '전체법령명'],
-  ministry:['소관부처명', '소관부처', '부처명', '소관부처기관명', 'cptOfiOrgNm', 'ministry', '조직명'],
-  notice:  ['공고일자', '공고일', '입법예고일', '예고시작일', '시작일', 'noticeDt', 'propseDt', 'beginDt'],
-  closing: ['의견제출마감일', '의견제출기간종료일', '예고종료일', '마감일', '종료일', 'opinDt', 'closeDt', 'endDt'],
-  summary: ['주요내용', '제안이유', '입법예고내용', '제안이유및주요내용', 'summary', 'reason', 'content'],
-  detailUrl:['상세링크', '상세URL', 'detailUrl', 'url', 'link'],
+  id:      ['입법예고일련번호', '일련번호', '입법예고ID', '공고번호', 'bilId', 'lsSeq', 'lawSeq', 'seq', 'id'],
+  law:     ['법령명', '법령명한글', '입법예고명', '안건명', '제목', 'lawNm', 'lsNm', 'bilNm', 'title', '전체법령명'],
+  ministry:['소관부처명', '소관부처', '부처명', '소관부처기관명', '담당부처', 'cptOfiOrgNm', 'ministry', '조직명'],
+  notice:  ['입법예고시작일자', '예고시작일자', '공고일자', '공고일', '입법예고일', '예고시작일', '시작일', 'noticeDt', 'propseDt', 'beginDt'],
+  closing: ['입법예고종료일자', '예고종료일자', '의견제출마감일', '의견제출종료일', '의견제출기간종료일', '예고종료일', '마감일', '종료일', 'opinDt', 'closeDt', 'endDt'],
+  summary: ['주요내용', '제안이유', '입법예고내용', '제안이유및주요내용', '내용', 'summary', 'reason', 'content'],
+  detailUrl:['상세링크', '상세URL', '링크', 'detailUrl', 'url', 'link'],
 };
 
 // ── 헬퍼 ──────────────────────────────────────────────────────────────────────
@@ -78,8 +80,9 @@ function isRelevant(lawName) {
 
 // 응답(JSON/XML)에서 item 배열을 최대한 견고하게 추출
 function extractItems(payload) {
-  // 흔한 컨테이너 경로들을 탐색
+  // 흔한 컨테이너 경로들을 탐색 (odcloud는 data[] 사용)
   const paths = [
+    p => p?.data,                          // odcloud 표준
     p => p?.response?.body?.items?.item,
     p => p?.response?.body?.items,
     p => p?.body?.items?.item,
@@ -100,11 +103,12 @@ function extractItems(payload) {
   return [];
 }
 
-async function fetchPage(pageNo) {
-  // Decoding 키 기준 — encodeURIComponent 로 안전하게 인코딩
+async function fetchPage(page) {
+  // odcloud 표준: page / perPage / serviceKey(인코딩) / returnType
+  // Decoding 키를 encodeURIComponent 로 인코딩 → Encoding 키와 동일해짐
   const sep = API_URL.includes('?') ? '&' : '?';
-  const url = `${API_URL}${sep}serviceKey=${encodeURIComponent(SERVICE_KEY)}`
-    + `&pageNo=${pageNo}&numOfRows=${NUM_ROWS}&type=json&_type=json`;
+  const url = `${API_URL}${sep}page=${page}&perPage=${PER_PAGE}`
+    + `&returnType=JSON&serviceKey=${encodeURIComponent(SERVICE_KEY)}`;
   const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
   const text = await res.text();
   if (!res.ok) throw new Error(`HTTP ${res.status} — ${text.slice(0, 300)}`);
@@ -121,6 +125,7 @@ async function fetchPage(pageNo) {
 // ── 메인 ──────────────────────────────────────────────────────────────────────
 
 async function main() {
+  if (!API_URL) throw new Error('레포 Variable DATA_API_URL 이 비어 있습니다. Swagger의 전체 요청주소(uddi 포함)를 지정하세요.');
   if (!SERVICE_KEY) throw new Error('환경변수 DATA_GO_KR_KEY 가 비어 있습니다.');
   if (!SA_JSON) throw new Error('환경변수 FIREBASE_SERVICE_ACCOUNT 가 비어 있습니다.');
 
@@ -140,7 +145,7 @@ async function main() {
     }
     if (!items.length) break;
     raw.push(...items);
-    if (items.length < NUM_ROWS) break;
+    if (items.length < PER_PAGE) break;
   }
   console.log(`수집된 입법예고 총 ${raw.length}건`);
 
