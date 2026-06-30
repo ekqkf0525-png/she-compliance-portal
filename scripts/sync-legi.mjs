@@ -17,12 +17,10 @@ import { XMLParser } from 'fast-xml-parser';
 
 // ── 설정 ──────────────────────────────────────────────────────────────────────
 
-// odcloud 표준 API (namespace 15123431/v1).
-// 요청주소의 '전체 경로'(uddi 리소스 포함)를 Swagger에서 복사해
-// 레포 Variable DATA_API_URL 로 지정하세요.
-//   Swagger: https://infuser.odcloud.kr/oas/docs?namespace=15123431/v1
-//   예) https://api.odcloud.kr/api/15123431/v1/uddi:xxxxxxxx-....
-const API_URL = process.env.DATA_API_URL || '';
+// odcloud 표준 API (법제처_입법예고관련정보, namespace 15123431/v1).
+// 엔드포인트는 OAS 명세로 확정됨. 필요 시 레포 Variable DATA_API_URL 로 덮어쓰기 가능.
+const API_URL = process.env.DATA_API_URL
+  || 'https://api.odcloud.kr/api/15123431/v1/uddi:9de4f5a7-ba4a-4400-b756-f88bb73ba5af';
 
 const SERVICE_KEY = process.env.DATA_GO_KR_KEY || '';   // Decoding 키 권장(스크립트가 인코딩)
 const SA_JSON = process.env.FIREBASE_SERVICE_ACCOUNT || '';
@@ -30,23 +28,29 @@ const SA_JSON = process.env.FIREBASE_SERVICE_ACCOUNT || '';
 const PER_PAGE = 100;   // 페이지당 건수 (odcloud perPage)
 const MAX_PAGES = 5;    // 최근 최대 500건만 훑어 필터링
 
-// 우리 부서 관련 법령(법령명에 아래 키워드가 포함되면 대상)
-//  - 산업안전보건법 / 시행령 / 시행규칙 / 산업안전보건기준에 관한 규칙 / 관련 고시
-//  - 위험물안전관리법 / 시행령 / 시행규칙
-const RELEVANT_KEYWORDS = ['산업안전보건', '위험물안전관리'];
+// 우리 부서 관련 법령(발행명에 키워드 포함 시 대상). 이 API엔 소관부처 필드가
+// 없으므로, 매칭된 키워드로 소관부처를 도출한다.
+//  - 산업안전보건법 / 시행령 / 시행규칙 / 산업안전보건기준에 관한 규칙 / 관련 고시  → 고용노동부
+//  - 위험물안전관리법 / 시행령 / 시행규칙                                          → 소방청
+const RELEVANT = [
+  { keyword: '산업안전보건', ministry: '고용노동부' },
+  { keyword: '위험물안전관리', ministry: '소방청' },
+];
+function matchRelevant(name) {
+  const n = (name || '').replace(/\s/g, '');
+  return RELEVANT.find(r => n.includes(r.keyword)) || null;
+}
 
 // 데모 시드 문서 id(앱이 최초 시드한 가짜 데이터) — 동기화 성공 시 제거
 const DEMO_LEGI_IDS = ['l1', 'l2', 'l3', 'l4', 'l5'];
 
-// 응답 필드명 후보(명세 확정 전 방어적 매핑)
+// 응답 필드명 매핑 (OAS 확정: 발행명/공고번호/공고일자/입법예고시작일자/입법예고종료일자/입법예고파일내용)
 const F = {
-  id:      ['입법예고일련번호', '일련번호', '입법예고ID', '공고번호', 'bilId', 'lsSeq', 'lawSeq', 'seq', 'id'],
-  law:     ['법령명', '법령명한글', '입법예고명', '안건명', '제목', 'lawNm', 'lsNm', 'bilNm', 'title', '전체법령명'],
-  ministry:['소관부처명', '소관부처', '부처명', '소관부처기관명', '담당부처', 'cptOfiOrgNm', 'ministry', '조직명'],
-  notice:  ['입법예고시작일자', '예고시작일자', '공고일자', '공고일', '입법예고일', '예고시작일', '시작일', 'noticeDt', 'propseDt', 'beginDt'],
-  closing: ['입법예고종료일자', '예고종료일자', '의견제출마감일', '의견제출종료일', '의견제출기간종료일', '예고종료일', '마감일', '종료일', 'opinDt', 'closeDt', 'endDt'],
-  summary: ['주요내용', '제안이유', '입법예고내용', '제안이유및주요내용', '내용', 'summary', 'reason', 'content'],
-  detailUrl:['상세링크', '상세URL', '링크', 'detailUrl', 'url', 'link'],
+  id:      ['공고번호', '입법예고파일번호', '입법예고일련번호'],
+  law:     ['발행명', '법령명', '입법예고명'],
+  notice:  ['입법예고시작일자', '공고일자'],
+  closing: ['입법예고종료일자'],
+  summary: ['입법예고파일내용', '주요내용', '제안이유'],
 };
 
 // ── 헬퍼 ──────────────────────────────────────────────────────────────────────
@@ -71,11 +75,6 @@ function daysBetween(a, b) {
   const d1 = new Date(a + 'T00:00:00'), d2 = new Date(b + 'T00:00:00');
   if (isNaN(d1) || isNaN(d2)) return null;
   return Math.round((d2 - d1) / 86400000);
-}
-
-function isRelevant(lawName) {
-  const n = (lawName || '').replace(/\s/g, '');
-  return RELEVANT_KEYWORDS.some(k => n.includes(k));
 }
 
 // 응답(JSON/XML)에서 item 배열을 최대한 견고하게 추출
@@ -149,22 +148,23 @@ async function main() {
   }
   console.log(`수집된 입법예고 총 ${raw.length}건`);
 
-  // 2) 정규화 + 필터
+  // 2) 정규화 + 필터 (소관부처는 매칭 키워드로 도출)
   const mapped = raw.map((it, i) => {
     const law = pick(it, F.law);
-    const ministry = pick(it, F.ministry);
+    const rel = matchRelevant(law);
+    if (!law || !rel) return null;
     const notice = normDate(pick(it, F.notice));
     const closing = normDate(pick(it, F.closing));
     const period = (() => { const d = daysBetween(notice, closing); return d != null ? `${d}일` : ''; })();
     const idRaw = pick(it, F.id) || `${law}_${notice}` || `idx${i}`;
     return {
       docId: 'gov_' + idRaw.replace(/[^0-9a-zA-Z가-힣_-]/g, ''),
-      law, ministry, noticeDate: notice, closingDate: closing, period,
+      law, ministry: rel.ministry, noticeDate: notice, closingDate: closing, period,
       summary: pick(it, F.summary),
     };
-  }).filter(x => x.law && isRelevant(x.law));
+  }).filter(Boolean);
 
-  console.log(`관련 법령(${RELEVANT_KEYWORDS.join(', ')}) 필터 후 ${mapped.length}건`);
+  console.log(`관련 법령(${RELEVANT.map(r => r.keyword).join(', ')}) 필터 후 ${mapped.length}건`);
   mapped.forEach(m => console.log(`  · ${m.law} (${m.ministry}) 마감 ${m.closingDate}`));
 
   // 3) Firestore upsert (검토 상태는 기존 값 보존)
