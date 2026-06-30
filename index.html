@@ -81,6 +81,7 @@ tbody tr.selected-blue{background:#eef1f7}
 .upload-zone:hover{border-color:#F39200;background:#fffaf2;color:#c9760a}
 
 .clabus-badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:4px}
+@keyframes fbspin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -134,6 +135,16 @@ const firebaseConfig = {
 
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
+
+// ─── GEMINI (AI 비서) ─────────────────────────────────────────────────────────
+// 보안: API 키는 소스에 저장하지 않고 브라우저 localStorage에만 보관한다.
+const GEMINI_MODEL = 'gemini-2.0-flash'; // 무료 모델
+const GEMINI_ENDPOINT = (key) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(key)}`;
+
+function getGeminiKey() { try { return localStorage.getItem('gemini_api_key') || ''; } catch (e) { return ''; } }
+function setGeminiKey(k) { try { localStorage.setItem('gemini_api_key', k); } catch (e) {} }
+function clearGeminiKey() { try { localStorage.removeItem('gemini_api_key'); } catch (e) {} }
 
 // ─── DATA ───────────────────────────────────────────────────────────────────
 
@@ -224,6 +235,8 @@ const state = {
   registerFilter: 'all',
   selectedRegisterId: null,
   legiFilter: 'all',
+  // ── AI 비서 상태 ──
+  ai: { status: 'idle', text: '', error: '', at: '' },  // idle | loading | done | error
   // ── Firebase 연결/로딩 상태 ──
   conn: 'connecting',   // connecting | connected | error
   connError: '',
@@ -289,6 +302,195 @@ function clabusStatusMeta(s) {
   if (s === '결재중') return { color:'#E08600', bg:'#fdf0db', icon:'⟳' };
   if (s === '작성중') return { color:'#7d756c', bg:'#f0eee9', icon:'✎' };
   return { color:'#a7a199', bg:'#f3f1ee', icon:'○' };
+}
+
+// ─── AI 비서 (GEMINI) ─────────────────────────────────────────────────────────
+
+// 현재 대시보드 데이터를 요약해 모델에 전달할 컨텍스트 문자열을 만든다.
+function buildAiContext() {
+  const rows = state.compliance.map(decorateCompliance);
+  const fmt = r => `- [${r.status}] ${r.lawShort} ${r.article} ${r.articleName} · 담당:${r.owner}`
+    + (r.revised && r.ddayNum != null ? ` · 개정시행일 ${r.effectiveDate}(D-${r.ddayNum})` : '')
+    + (r.response ? ` · 대응:${r.response}` : '');
+
+  const lack = rows.filter(r => r.status === '미흡');
+  const prog = rows.filter(r => r.status === '진행중');
+  const notApplies = rows.filter(r => !r.applies);
+  const revImminent = rows.filter(r => r.revised && r.ddayNum != null && r.ddayNum >= 0).sort((a,b) => a.ddayNum - b.ddayNum);
+
+  const edu = state.edu.map(decorateEdu);
+  const eduRisk = edu.filter(e => e.status === '지연' || (e.status === '예정' && e.dd <= 30)).sort((a,b) => a.dd - b.dd);
+  const fmtEdu = e => `- [${e.status}] ${e.course} · 대상:${e.name}(${e.role}) · 차기도래:${e.next}(${e.ddayText})`;
+
+  const legi = state.legi.map(l => ({ ...l, dd: dday(l.closingDate) })).filter(l => l.status !== '완료').sort((a,b) => a.dd - b.dd);
+  const fmtLegi = l => `- [${l.status}] ${l.law} · ${l.ministry} · 의견마감:${l.closingDate}(D-${l.dd}) · ${l.summary}`;
+
+  const okN = rows.filter(r => r.status === '준수').length;
+  const rate = rows.length ? Math.round(okN / rows.length * 100) : 0;
+
+  return [
+    `■ 기준일: 2026-06-30 / 사업장: ${state.site}`,
+    `■ 전체 법규 ${rows.length}건 · 준수율 ${rate}% (준수 ${okN} / 진행중 ${prog.length} / 미흡 ${lack.length})`,
+    ``,
+    `■ 미흡(미준수) 항목 ${lack.length}건:`,
+    lack.length ? lack.map(fmt).join('\n') : '- 없음',
+    ``,
+    `■ 진행중(대응중) 항목 ${prog.length}건:`,
+    prog.length ? prog.map(fmt).join('\n') : '- 없음',
+    ``,
+    `■ 개정 시행일 임박 항목(D-day 오름차순) ${revImminent.length}건:`,
+    revImminent.length ? revImminent.map(fmt).join('\n') : '- 없음',
+    ``,
+    `■ 해당여부 '비해당'으로 표시된 항목 ${notApplies.length}건 (검토 누락 가능성 점검 대상):`,
+    notApplies.length ? notApplies.map(fmt).join('\n') : '- 없음',
+    ``,
+    `■ 법정교육 위험(지연 또는 D-30 이내) ${eduRisk.length}건:`,
+    eduRisk.length ? eduRisk.map(fmtEdu).join('\n') : '- 없음',
+    ``,
+    `■ 진행 중인 법제처 입법예고(의견마감 임박순) ${legi.length}건:`,
+    legi.length ? legi.map(fmtLegi).join('\n') : '- 없음',
+  ].join('\n');
+}
+
+function buildAiPrompt() {
+  return `당신은 한화솔루션 SHE(안전·보건·환경) 법규 컴플라이언스 전문 비서입니다.
+아래는 한 사업장의 현재 법규 준수 현황 데이터입니다. 이 데이터만 근거로 분석하세요(없는 사실을 지어내지 마세요).
+
+[현황 데이터]
+${buildAiContext()}
+
+위 데이터를 바탕으로 실무 담당자가 바로 행동할 수 있도록 한국어로 작성하세요. 간결한 마크다운(##, **굵게**, 불릿/번호목록)만 사용하고 표는 쓰지 마세요.
+
+## 🔎 법규 누락·미준수 위험성 진단
+가장 위험이 큰 항목 위주로 3~5개, 각 항목에 위험 사유와 잠재적 법적 리스크를 1~2문장으로.
+
+## ⏱️ 지금 가장 먼저 대응할 우선순위 업무 (Top 5)
+시급성(미흡 > 시행일 임박 > 교육지연 > 입법예고 마감)을 기준으로 순위를 매기고, 각 항목에 **무엇을/누가(담당)/언제까지/왜** 를 한 줄로.
+
+## 🧭 한 줄 총평
+오늘 가장 집중해야 할 핵심을 한 문장으로.`;
+}
+
+async function runAiAnalysis() {
+  const key = getGeminiKey();
+  if (!key) { setState({ ai: { status:'error', text:'', error:'API 키가 설정되지 않았습니다. 아래에 키를 입력하세요.', at:'' } }); return; }
+  if (!state.compliance.length) { setState({ ai: { status:'error', text:'', error:'데이터가 아직 로드되지 않았습니다.', at:'' } }); return; }
+  setState({ ai: { status:'loading', text:'', error:'', at:'' } });
+  try {
+    const res = await fetch(GEMINI_ENDPOINT(key), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: buildAiPrompt() }] }],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 2048 }
+      })
+    });
+    if (!res.ok) {
+      let detail = '';
+      try { const j = await res.json(); detail = j.error?.message || ''; } catch (e) { detail = await res.text().catch(() => ''); }
+      throw new Error(`HTTP ${res.status} — ${detail || res.statusText}`);
+    }
+    const data = await res.json();
+    const cand = data.candidates && data.candidates[0];
+    const text = cand && cand.content && cand.content.parts
+      ? cand.content.parts.map(p => p.text || '').join('')
+      : '';
+    if (!text) throw new Error('응답이 비어 있습니다' + (cand && cand.finishReason ? ` (finishReason: ${cand.finishReason})` : ''));
+    setState({ ai: { status:'done', text, error:'', at: new Date().toLocaleString('ko-KR', { hour:'2-digit', minute:'2-digit' }) } });
+  } catch (err) {
+    setState({ ai: { status:'error', text:'', error: err.message, at:'' } });
+  }
+}
+
+// 아주 가벼운 마크다운 → HTML 변환 (제목/굵게/코드/불릿/번호목록)
+function mdToHtml(md) {
+  const il = s => esc(s)
+    .replace(/\*\*(.+?)\*\*/g, '<strong style="color:#231f1c">$1</strong>')
+    .replace(/`(.+?)`/g, '<code style="background:#f0eee9;padding:1px 5px;border-radius:3px;font-size:12px">$1</code>');
+  const lines = md.split('\n');
+  let html = '', ul = false, ol = false;
+  const close = () => { if (ul) { html += '</ul>'; ul = false; } if (ol) { html += '</ol>'; ol = false; } };
+  for (const raw of lines) {
+    const line = raw.replace(/\s+$/, '');
+    let m;
+    if (/^#{1,6}\s+/.test(line)) {
+      close();
+      html += `<div style="font-size:14.5px;font-weight:800;color:#1f3864;margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid #ece9e5">${il(line.replace(/^#{1,6}\s+/, ''))}</div>`;
+    } else if ((m = line.match(/^\s*[-*]\s+(.*)/))) {
+      if (!ul) { close(); html += '<ul style="margin:0 0 4px;padding-left:20px;display:flex;flex-direction:column;gap:5px">'; ul = true; }
+      html += `<li style="font-size:13px;line-height:1.6;color:#3b3530">${il(m[1])}</li>`;
+    } else if ((m = line.match(/^\s*(\d+)\.\s+(.*)/))) {
+      if (!ol) { close(); html += '<ol style="margin:0 0 4px;padding-left:22px;display:flex;flex-direction:column;gap:6px">'; ol = true; }
+      html += `<li style="font-size:13px;line-height:1.6;color:#3b3530">${il(m[2])}</li>`;
+    } else if (line.trim() === '') {
+      close();
+    } else {
+      close();
+      html += `<p style="font-size:13px;line-height:1.65;color:#3b3530;margin:0 0 8px">${il(line)}</p>`;
+    }
+  }
+  close();
+  return html;
+}
+
+function renderAiCard() {
+  const ai = state.ai;
+  const hasKey = !!getGeminiKey();
+  const running = ai.status === 'loading';
+
+  let body;
+  if (!hasKey) {
+    body = `<div style="padding:18px 20px">
+      <div style="font-size:13px;line-height:1.6;color:#7d756c;margin-bottom:12px">
+        AI 비서를 사용하려면 Google Gemini API 키가 필요합니다. 키는 이 브라우저에만 저장되며 서버·저장소에는 전송·기록되지 않습니다.
+        <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#1f3864;font-weight:600">→ API 키 발급</a>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input id="gemini-key-input" type="password" placeholder="Gemini API 키 붙여넣기" style="flex:1;border:1px solid #d8d4ce;border-radius:6px;padding:9px 12px;font-size:13px;outline:none"/>
+        <button data-ai-savekey style="font-size:13px;font-weight:700;color:#fff;background:#1f3864;border:none;border-radius:6px;padding:9px 18px;cursor:pointer">키 저장</button>
+      </div>
+    </div>`;
+  } else if (running) {
+    body = `<div style="display:flex;align-items:center;gap:14px;padding:30px 22px;color:#9a948c">
+      <div style="width:26px;height:26px;border:3px solid #ece9e5;border-top-color:#F39200;border-radius:50%;animation:fbspin 0.8s linear infinite"></div>
+      <span style="font-size:13.5px;font-weight:600">현재 법규 현황을 분석하고 있습니다…</span>
+    </div>`;
+  } else if (ai.status === 'error') {
+    body = `<div style="padding:18px 20px">
+      <div style="font-size:12.5px;font-family:monospace;color:#b83232;background:#faf3f3;border:1px solid #f1d6d6;border-radius:6px;padding:11px 13px;word-break:break-all;margin-bottom:12px">${esc(ai.error)}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input id="gemini-key-input" type="password" placeholder="다른 API 키로 재설정 (선택)" style="flex:1;border:1px solid #d8d4ce;border-radius:6px;padding:8px 12px;font-size:12.5px;outline:none"/>
+        <button data-ai-savekey style="font-size:12.5px;font-weight:700;color:#fff;background:#1f3864;border:none;border-radius:6px;padding:8px 14px;cursor:pointer">키 저장</button>
+        <button data-ai-run style="font-size:12.5px;font-weight:700;color:#fff;background:#F39200;border:none;border-radius:6px;padding:8px 14px;cursor:pointer">다시 시도</button>
+      </div>
+    </div>`;
+  } else if (ai.status === 'done') {
+    body = `<div style="padding:6px 22px 20px">${mdToHtml(ai.text)}</div>`;
+  } else {
+    body = `<div style="padding:26px 22px;text-align:center">
+      <div style="font-size:13.5px;color:#7d756c;line-height:1.6;margin-bottom:16px">현재 사업장의 법규 누락·미준수 위험을 점검하고,<br>지금 가장 먼저 대응해야 할 업무를 우선순위로 정리해 드립니다.</div>
+      <button data-ai-run style="font-size:13.5px;font-weight:700;color:#fff;background:linear-gradient(135deg,#F39200,#e07d00);border:none;border-radius:8px;padding:11px 26px;cursor:pointer;box-shadow:0 2px 8px rgba(243,146,0,.3)">✨ AI 리스크 분석 실행</button>
+    </div>`;
+  }
+
+  const showRerun = hasKey && (ai.status === 'done');
+  return `<div class="card" style="margin-bottom:16px;border:1px solid #d8c4a0;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:linear-gradient(100deg,#241f1d,#3a2f28);color:#fff">
+      <div style="display:flex;align-items:center;gap:11px">
+        <span style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#F39200,#1f3864);display:flex;align-items:center;justify-content:center;font-size:16px">🤖</span>
+        <div style="line-height:1.25">
+          <div style="font-size:15px;font-weight:800">AI 컴플라이언스 비서</div>
+          <div style="font-size:11px;color:#b5ada4">법규 누락 위험 진단 · 우선 대응업무 정리 · ${esc(GEMINI_MODEL)}</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${ai.at ? `<span style="font-size:11px;color:#b5ada4">${esc(ai.at)} 분석</span>` : ''}
+        ${showRerun ? `<button data-ai-run style="font-size:12px;font-weight:700;color:#231f1c;background:#F39200;border:none;border-radius:6px;padding:7px 14px;cursor:pointer">↻ 다시 분석</button>` : ''}
+        ${hasKey ? `<button data-ai-clearkey title="API 키 삭제" style="font-size:11.5px;color:#cdc4bb;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:7px 10px;cursor:pointer">키 변경</button>` : ''}
+      </div>
+    </div>
+    ${body}
+  </div>`;
 }
 
 // ─── RENDER: SIDEBAR ─────────────────────────────────────────────────────────
@@ -385,6 +587,8 @@ function renderMain() {
   const trendData = [['1월',61],['2월',64],['3월',66],['4월',69],['5월',70],['6월',rate]];
 
   return `<div class="content-pad">
+
+    ${renderAiCard()}
 
     <!-- stat cards -->
     <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:14px;margin-bottom:16px">
@@ -1105,7 +1309,6 @@ function renderLoading() {
   return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:90px 24px;color:#9a948c">
     <div style="width:42px;height:42px;border:4px solid #ece9e5;border-top-color:#F39200;border-radius:50%;animation:fbspin 0.8s linear infinite"></div>
     <div style="font-size:14px;font-weight:600">Firebase Firestore에서 데이터를 불러오는 중…</div>
-    <style>@keyframes fbspin{to{transform:rotate(360deg)}}</style>
   </div>`;
 }
 
@@ -1191,6 +1394,26 @@ function handleClick(e) {
 
 document.addEventListener('click', function(e) {
   const t = e.target;
+
+  const aiRun = t.closest('[data-ai-run]');
+  if (aiRun) { runAiAnalysis(); return; }
+
+  const aiSaveKey = t.closest('[data-ai-savekey]');
+  if (aiSaveKey) {
+    const input = document.getElementById('gemini-key-input');
+    const k = input ? input.value.trim() : '';
+    if (!k) { alert('API 키를 입력하세요.'); return; }
+    setGeminiKey(k);
+    runAiAnalysis();
+    return;
+  }
+
+  const aiClearKey = t.closest('[data-ai-clearkey]');
+  if (aiClearKey) {
+    clearGeminiKey();
+    setState({ ai: { status:'idle', text:'', error:'', at:'' } });
+    return;
+  }
 
   const nav = t.closest('[data-nav]');
   if (nav) { setState({ screen: nav.dataset.nav, selectedId: null, selectedEduId: null }); return; }
