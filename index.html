@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SHE 법규 컴플라이언스 대시보드 | 한화솔루션</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic','맑은 고딕','Noto Sans KR',sans-serif;background:#eceae6;color:#2a2522}
+button{font-family:inherit;cursor:pointer}
+input,select,textarea{font-family:inherit}
+a{text-decoration:none}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#cfcbc5;border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+#app{display:flex;flex-direction:column;height:100vh;min-height:0}
+#header{flex:none;height:62px;background:#fff;border-bottom:1px solid #e0ddd8;display:flex;align-items:center;padding:0 22px;gap:30px;box-shadow:0 1px 0 rgba(0,0,0,.02)}
+#body{flex:1;display:flex;min-height:0}
+#sidebar{width:222px;flex:none;background:#241f1d;display:flex;flex-direction:column;min-height:0}
+#content{flex:1;min-width:0;overflow-y:auto;background:#eceae6;position:relative}
+
+.gnb-link{display:flex;align-items:center;height:100%;font-size:14.5px;cursor:pointer;padding-top:3px}
+.gnb-link:hover{color:#231f1c!important}
+.side-item{display:flex;align-items:center;gap:9px;padding:11px 18px;font-size:13.5px;cursor:pointer;transition:background .1s}
+.side-item:hover{background:rgba(255,255,255,.05)}
+.row-hover:hover{background:#fbf7f0!important}
+.more-link{font-size:12px;color:#9a948c;font-weight:500;cursor:pointer;transition:color .15s}
+.more-link:hover{color:#F39200!important}
+.chip-btn{font-size:11.5px;padding:5px 11px;border-radius:14px;cursor:pointer;font-weight:500;border:1px solid #e0ddd8;background:#fff;color:#7d756c;transition:all .15s}
+.chip-btn.active{background:#1f3864;color:#fff;border-color:#1f3864;font-weight:700}
+.chip-btn.active-orange{background:#fdf3e3;color:#c9760a;border-color:#F39200;font-weight:700}
+
+.card{background:#fff;border:1px solid #e0ddd8;border-radius:8px;overflow:hidden}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #ece9e5}
+.card-title{font-size:15px;font-weight:700;color:#231f1c}
+
+.badge{display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;padding:3px 9px;border-radius:4px;white-space:nowrap}
+.badge-green{color:#2E9E5B;background:#e7f4ec}
+.badge-orange{color:#E08600;background:#fdf0db}
+.badge-red{color:#D64545;background:#fbe7e7}
+.badge-navy{color:#fff;background:#1f3864}
+.badge-navy2{color:#fff;background:#3a5a8c}
+.badge-gray{color:#fff;background:#7081a0}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead tr{background:#1f3864;color:#fff}
+th{padding:10px 10px;font-weight:700;font-size:12px;white-space:nowrap}
+th:first-child{padding-left:14px}
+td{padding:11px 10px;border-bottom:1px solid #f3f0ec}
+td:first-child{padding-left:14px}
+tbody tr{cursor:pointer;transition:background .1s}
+tbody tr:hover{background:#fbf7f0}
+tbody tr.selected{background:#fbf2e3}
+tbody tr.selected-blue{background:#eef1f7}
+
+.detail-panel{background:#fff;border:1px solid #e0ddd8;border-radius:8px;overflow:hidden;position:sticky;top:14px}
+.detail-empty{padding:60px 24px;text-align:center;color:#b5afa7}
+.detail-empty-icon{font-size:30px;margin-bottom:10px}
+.detail-empty-text{font-size:13px;line-height:1.6}
+
+.status-btn{flex:1;font-size:13px;font-weight:700;padding:8px 4px;border-radius:6px;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
+.applies-btn{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:6px;cursor:pointer;font-size:13.5px;font-weight:700;border:1.5px solid;transition:all .15s}
+.variant-btn{font-size:12px;padding:7px 12px;border-radius:6px;border:none;cursor:pointer;font-weight:500;transition:all .15s}
+.variant-btn.active{background:#1f3864;color:#fff}
+.variant-btn.inactive{background:transparent;color:#7d756c}
+
+.content-topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 30px 4px}
+.content-pad{padding:14px 30px 40px}
+
+.timeline-card{border:1px solid #ece9e5;border-radius:7px;overflow:hidden;min-height:96px;display:flex;flex-direction:column}
+.timeline-month{font-size:12px;font-weight:700;color:#7d756c;background:#f7f5f2;padding:7px 10px;border-bottom:1px solid #ece9e5}
+.timeline-item{border-radius:4px;padding:5px 7px}
+.timeline-item-name{font-size:11px;font-weight:700;color:#2a2522;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.timeline-item-sub{font-size:10px;color:#8a847d}
+
+.legi-row{display:flex;align-items:flex-start;gap:14px;padding:13px 18px;border-bottom:1px solid #f3f0ec;cursor:pointer;transition:background .1s}
+.legi-row:hover{background:#fbf7f0}
+
+.upload-zone{border:2px dashed #d8d4ce;border-radius:8px;padding:32px;text-align:center;color:#a7a199;cursor:pointer;transition:all .15s}
+.upload-zone:hover{border-color:#F39200;background:#fffaf2;color:#c9760a}
+
+.clabus-badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="header">
+    <div style="display:flex;align-items:center;gap:11px;width:222px;flex:none">
+      <div style="width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#F39200,#1f3864);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:13px">SHE</div>
+      <div style="line-height:1.05">
+        <div style="font-size:9px;color:#8a847d;font-weight:500;letter-spacing:.02em">한화솔루션</div>
+        <div style="font-size:18px;font-weight:900;color:#231f1c;letter-spacing:-.01em">SHE Portal</div>
+      </div>
+    </div>
+    <nav id="topnav" style="flex:1;display:flex;align-items:center;gap:30px;height:100%"></nav>
+    <div style="display:flex;align-items:center;gap:16px;flex:none">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:13.5px;font-weight:700;color:#3b3530">김다밭님</span>
+        <span style="width:30px;height:30px;border-radius:50%;background:#f0ece6;border:1px solid #e0ddd8;display:flex;align-items:center;justify-content:center;font-size:14px">👤</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;padding-left:14px;border-left:1px solid #ece9e5">
+        <span style="width:22px;height:22px;border-radius:50%;border:2.5px solid #F39200;display:inline-block"></span>
+        <span style="font-size:11px;font-weight:700;color:#8a847d;letter-spacing:.02em;line-height:1.05">ACT<br>DIGITAL</span>
+      </div>
+    </div>
+  </header>
+  <div id="body">
+    <aside id="sidebar"></aside>
+    <main id="content"></main>
+  </div>
+</div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const TODAY = new Date('2026-06-30T00:00:00');
+
+function dday(dateStr) {
+  if (!dateStr) return null;
+  return Math.round((new Date(dateStr + 'T00:00:00') - TODAY) / 86400000);
+}
+
+function statusMeta(s) {
+  if (s === '준수') return { color: '#2E9E5B', bg: '#e7f4ec' };
+  if (s === '진행중') return { color: '#E08600', bg: '#fdf0db' };
+  return { color: '#D64545', bg: '#fbe7e7' };
+}
+
+function typeMeta(t) {
+  if (t === '법') return { color: '#fff', bg: '#1f3864', cls: 'badge-navy' };
+  if (t === '령') return { color: '#fff', bg: '#3a5a8c', cls: 'badge-navy2' };
+  return { color: '#fff', bg: '#7081a0', cls: 'badge-gray' };
+}
+
+const H = (d, t) => ({ date: d, text: t });
+
+const COMPLIANCE_SEED = [
+  { id:'c1', lawShort:'산업안전보건법', law:'산업안전보건법', type:'법', article:'제15조', articleName:'안전보건관리책임자', requirement:'상시근로자 50인 이상 사업장 — 사업장 전반 안전보건 총괄관리 책임자 선임 의무.', applies:true, status:'준수', basis:[{name:'책임자 선임 공문(2025)'},{name:'직무 위임 규정'}], revised:false, effectiveDate:'', response:'공장장을 책임자로 선임 완료, 직무교육 이수.', owner:'안전기획파트', updated:'2026-05-12', history:[H('2026-05-12','선임 현황 정기 점검 완료'),H('2025-03-02','책임자 신규 선임')] },
+  { id:'c2', lawShort:'산업안전보건법', law:'산업안전보건법', type:'법', article:'제16조', articleName:'관리감독자', requirement:'생산 관련 부서장 등 관리감독자 지정 및 업무 부여.', applies:true, status:'준수', basis:[{name:'관리감독자 지정표'}], revised:false, effectiveDate:'', response:'전 부서 관리감독자 지정 및 직무 명시.', owner:'각 생산팀', updated:'2026-04-30', history:[H('2026-04-30','지정 현황 갱신')] },
+  { id:'c3', lawShort:'산업안전보건법', law:'산업안전보건법', type:'법', article:'제17조', articleName:'안전관리자', requirement:'상시 50인 이상·일정 규모 이상 안전관리자 선임.', applies:true, status:'준수', basis:[{name:'안전관리자 선임 신고'}], revised:false, effectiveDate:'', response:'전담 안전관리자 2명 선임·신고 완료.', owner:'안전기획파트', updated:'2026-03-18', history:[H('2026-03-18','선임 신고 수리')] },
+  { id:'c4', lawShort:'산업안전보건법', law:'산업안전보건법', type:'법', article:'제18조', articleName:'보건관리자', requirement:'상시 50인 이상 사업장 보건관리자 선임 의무.', applies:true, status:'준수', basis:[{name:'보건관리자 선임 신고'}], revised:false, effectiveDate:'', response:'보건관리자 1명 선임 완료.', owner:'보건파트', updated:'2026-03-18', history:[H('2026-03-18','선임 신고 완료')] },
+  { id:'c5', lawShort:'산업안전보건법', law:'산업안전보건법', type:'법', article:'제24조', articleName:'산업안전보건위원회', requirement:'노사 동수 구성 위원회 분기별 정기 개최.', applies:true, status:'진행중', basis:[{name:'2분기 회의록(예정)'}], revised:false, effectiveDate:'', response:'2분기 위원회 일정 조율 중 — 7월 초 개최 예정.', owner:'안전기획파트', updated:'2026-06-20', history:[H('2026-06-20','2분기 안건 취합'),H('2026-04-05','1분기 회의 개최')] },
+  { id:'c6', lawShort:'산업안전보건법', law:'산업안전보건법', type:'법', article:'제29조', articleName:'근로자 안전보건교육', requirement:'정기·신규·작업내용 변경 시 안전보건교육 실시.', applies:true, status:'진행중', basis:[{name:'교육 이수 대장'}], revised:true, effectiveDate:'2026-07-15', response:'개정 교육시간 반영한 2026 교육계획 수정 진행 중.', owner:'안전교육파트', updated:'2026-06-25', revisionBefore:'정기교육 분기 6시간 이상', revisionAfter:'정기교육 분기 6시간 + 위험작업 종사자 추가 3시간', history:[H('2026-06-25','개정 대응 교육계획 초안'),H('2026-06-10','개정 공포 확인')] },
+  { id:'c7', lawShort:'산업안전보건법', law:'산업안전보건법', type:'법', article:'제36조', articleName:'위험성평가', requirement:'유해·위험요인 파악 및 위험성평가 실시·기록.', applies:true, status:'준수', basis:[{name:'위험성평가 결과서'},{name:'평가 절차서'}], revised:false, effectiveDate:'', response:'연 1회 정기평가 및 수시평가 운영 중.', owner:'안전기획파트', updated:'2026-02-28', history:[H('2026-02-28','정기 위험성평가 완료')] },
+  { id:'c8', lawShort:'산업안전보건법', law:'산업안전보건법', type:'법', article:'제63조', articleName:'도급인의 안전조치', requirement:'도급 작업 시 도급인의 안전·보건조치 및 점검 의무.', applies:true, status:'미흡', basis:[{name:'도급 점검 체크리스트'}], revised:false, effectiveDate:'', response:'협력사 합동점검 주기 미준수 — 점검 체계 보완 필요.', owner:'협력관리파트', updated:'2026-06-15', history:[H('2026-06-15','미흡 사항 식별'),H('2026-05-01','반기 합동점검 일부 누락')] },
+  { id:'c9', lawShort:'산업안전보건법', law:'산업안전보건법', type:'령', article:'제16조', articleName:'안전보건관리책임자 선임 대상', requirement:'시행령상 책임자 선임 대상 사업 및 규모 기준 충족.', applies:true, status:'준수', basis:[{name:'선임 대상 판정서'}], revised:false, effectiveDate:'', response:'대상 사업장 해당 — 선임 기준 충족 확인.', owner:'안전기획파트', updated:'2026-03-02', history:[H('2026-03-02','대상 판정 갱신')] },
+  { id:'c10', lawShort:'산업안전보건법', law:'산업안전보건법', type:'규칙', article:'제26조', articleName:'교육시간 기준', requirement:'근로자·관리감독자 교육시간 세부 기준 준수.', applies:true, status:'준수', basis:[{name:'교육시간 산정표'}], revised:true, effectiveDate:'2026-07-15', response:'개정 교육시간 기준 반영 완료.', owner:'안전교육파트', updated:'2026-06-22', revisionBefore:'관리감독자 연 16시간', revisionAfter:'관리감독자 연 16시간 + 신규 보임 시 8시간', history:[H('2026-06-22','개정 기준 반영')] },
+  { id:'c11', lawShort:'중대재해처벌법', law:'중대재해 처벌 등에 관한 법률', type:'법', article:'제4조', articleName:'안전보건 확보의무', requirement:'경영책임자의 안전보건관리체계 구축·이행 의무.', applies:true, status:'진행중', basis:[{name:'안전보건경영방침'},{name:'예산편성 내역'}], revised:false, effectiveDate:'', response:'관리체계 고도화 로드맵 2단계 이행 중.', owner:'안전기획파트', updated:'2026-06-18', history:[H('2026-06-18','2단계 이행 점검'),H('2026-01-10','연간 방침 공표')] },
+  { id:'c12', lawShort:'중대재해처벌법', law:'중대재해 처벌 등에 관한 법률', type:'법', article:'제5조', articleName:'도급·용역·위탁 시 확보의무', requirement:'도급 등 관계수급인 종사자에 대한 안전보건 확보의무.', applies:true, status:'미흡', basis:[{name:'수급인 평가 기준(초안)'}], revised:true, effectiveDate:'2026-09-01', response:'수급인 안전보건 수준 평가 체계 미비 — 평가표·주기 정립 필요.', owner:'협력관리파트', updated:'2026-06-26', revisionBefore:'수급인 안전보건 능력 평가 권고', revisionAfter:'연 1회 이상 수급인 안전보건 수준 평가 의무화', history:[H('2026-06-26','개정 대응 TF 구성'),H('2026-06-12','평가 체계 미흡 식별')] },
+  { id:'c13', lawShort:'중대재해처벌법', law:'중대재해 처벌 등에 관한 법률', type:'령', article:'제4조', articleName:'안전보건관리체계 구축 사항', requirement:'시행령상 9개 관리체계 구축·이행 세부사항 충족.', applies:true, status:'준수', basis:[{name:'관리체계 점검표'}], revised:false, effectiveDate:'', response:'9개 항목 이행 점검 완료.', owner:'안전기획파트', updated:'2026-05-20', history:[H('2026-05-20','반기 점검 완료')] },
+  { id:'c14', lawShort:'위험물안전관리법', law:'위험물안전관리법', type:'법', article:'제15조', articleName:'위험물안전관리자', requirement:'제조소등 위험물안전관리자 선임·신고 의무.', applies:true, status:'준수', basis:[{name:'안전관리자 선임 신고'}], revised:false, effectiveDate:'', response:'자격 보유 관리자 선임·신고 완료.', owner:'위험물관리파트', updated:'2026-04-10', history:[H('2026-04-10','선임 신고 완료')] },
+  { id:'c15', lawShort:'위험물안전관리법', law:'위험물안전관리법', type:'법', article:'제17조', articleName:'예방규정', requirement:'지정수량 이상 제조소등 예방규정 작성·제출.', applies:true, status:'준수', basis:[{name:'예방규정(인가본)'}], revised:false, effectiveDate:'', response:'예방규정 작성·제출 및 연 1회 검토.', owner:'위험물관리파트', updated:'2026-01-25', history:[H('2026-01-25','예방규정 정기 검토')] },
+  { id:'c16', lawShort:'위험물안전관리법', law:'위험물안전관리법', type:'법', article:'제18조', articleName:'정기점검·정기검사', requirement:'제조소등 정기점검 및 정기검사 실시.', applies:true, status:'준수', basis:[{name:'정기점검 기록부'}], revised:true, effectiveDate:'2026-08-10', response:'개정 점검항목 반영한 체크리스트 적용 완료.', owner:'위험물관리파트', updated:'2026-06-19', revisionBefore:'정기점검 연 1회', revisionAfter:'정기점검 연 1회 + 부식·누설 항목 의무 추가', history:[H('2026-06-19','개정 점검항목 반영')] },
+  { id:'c17', lawShort:'화학물질관리법', law:'화학물질관리법', type:'법', article:'제23조', articleName:'화학사고예방관리계획서', requirement:'유해화학물질 취급시설 사고예방관리계획서 작성·제출.', applies:true, status:'준수', basis:[{name:'사고예방관리계획서'}], revised:true, effectiveDate:'2026-09-30', response:'개정 서식 반영 위해 계획서 갱신 검토 중.', owner:'화학물질파트', updated:'2026-06-24', revisionBefore:'5년 주기 제출', revisionAfter:'5년 주기 + 변경사항 발생 시 30일 내 변경 제출', history:[H('2026-06-24','개정 서식 검토'),H('2026-06-08','개정안 공포')] },
+  { id:'c18', lawShort:'화학물질관리법', law:'화학물질관리법', type:'법', article:'제26조', articleName:'취급시설 정기검사', requirement:'유해화학물질 취급시설 정기·수시 검사 수검.', applies:true, status:'준수', basis:[{name:'정기검사 합격증'}], revised:false, effectiveDate:'', response:'정기검사 수검 및 합격 확인.', owner:'화학물질파트', updated:'2026-02-14', history:[H('2026-02-14','정기검사 합격')] },
+];
+
+const EDU_SEED = [
+  { id:'e1', name:'강도형', role:'관리감독자', course:'정기 안전보건교육', kind:'보수', cycle:'분기', last:'2026-04-01', next:'2026-07-01', status:'예정', evidence:'직전 이수증.pdf' },
+  { id:'e2', name:'박성훈', role:'안전관리자', course:'안전관리자 직무교육(신규)', kind:'신규', cycle:'선임 3개월내', last:'-', next:'2026-07-05', status:'예정', evidence:'선임 공문.pdf' },
+  { id:'e3', name:'정유진', role:'안전관리자', course:'안전관리자 직무교육(보수)', kind:'보수', cycle:'2년', last:'2024-07-12', next:'2026-07-12', status:'예정', evidence:'2024 이수증.pdf' },
+  { id:'e4', name:'이상혁', role:'안전보건관리책임자', course:'책임자 보수교육', kind:'보수', cycle:'2년', last:'2024-08-20', next:'2026-08-20', status:'예정', evidence:'2024 이수증.pdf' },
+  { id:'e5', name:'최민수', role:'보건관리자', course:'보건관리자 직무교육(보수)', kind:'보수', cycle:'2년', last:'2024-09-03', next:'2026-09-03', status:'예정', evidence:'2024 이수증.pdf' },
+  { id:'e6', name:'윤서연', role:'안전보건관리책임자', course:'책임자 보수교육', kind:'보수', cycle:'2년', last:'2024-06-25', next:'2026-06-25', status:'지연', evidence:'2024 이수증.pdf' },
+  { id:'e7', name:'김대표', role:'안전보건관리책임자', course:'책임자 신규교육', kind:'신규', cycle:'선임 3개월내', last:'2026-01-10', next:'2026-01-10', status:'완료', evidence:'2026 이수증.pdf' },
+  { id:'e8', name:'한지민', role:'안전관리자', course:'안전관리자 직무교육(보수)', kind:'보수', cycle:'2년', last:'2026-02-15', next:'2028-02-15', status:'완료', evidence:'2026 이수증.pdf' },
+  { id:'e9', name:'서지호', role:'관리감독자', course:'정기 안전보건교육', kind:'보수', cycle:'분기', last:'2026-04-01', next:'2026-10-01', status:'예정', evidence:'직전 이수증.pdf' },
+];
+
+// 법령 검토등록 데이터 (새 화면 ④)
+const REGISTER_SEED = [
+  { id:'r1', lawShort:'산업안전보건법', article:'제29조', articleName:'근로자 안전보건교육', reviewer:'이민준', reviewDate:'2026-06-25', summary:'개정 교육시간 기준 검토 및 사내 교육계획 수정안 작성', clabusStatus:'결재완료', clabusRef:'KSU-2026-0812', attachment:'교육계획_수정안_v2.xlsx', status:'완료' },
+  { id:'r2', lawShort:'중대재해처벌법', article:'제5조', articleName:'도급·용역·위탁 시 확보의무', reviewer:'박지수', reviewDate:'2026-06-26', summary:'수급인 안전보건 수준 평가표 초안 검토 — 개정 의무화 대응', clabusStatus:'결재중', clabusRef:'KSU-2026-0819', attachment:'수급인_평가표_초안.docx', status:'진행중' },
+  { id:'r3', lawShort:'위험물안전관리법', article:'제18조', articleName:'정기점검·정기검사', reviewer:'홍성태', reviewDate:'2026-06-19', summary:'개정 점검항목(부식·누설) 반영 체크리스트 작성 및 현장 배포', clabusStatus:'결재완료', clabusRef:'KSU-2026-0784', attachment:'점검체크리스트_개정반영.xlsx', status:'완료' },
+  { id:'r4', lawShort:'화학물질관리법', article:'제23조', articleName:'화학사고예방관리계획서', reviewer:'이민준', reviewDate:'2026-06-24', summary:'개정 서식(변경제출 30일 내) 반영을 위한 계획서 갱신 검토', clabusStatus:'작성중', clabusRef:'', attachment:'', status:'진행중' },
+  { id:'r5', lawShort:'산업안전보건법', article:'제63조', articleName:'도급인의 안전조치', reviewer:'박지수', reviewDate:'2026-06-15', summary:'협력사 합동점검 미이행 현황 파악 및 개선계획 수립', clabusStatus:'미제출', clabusRef:'', attachment:'합동점검_개선계획서.docx', status:'미흡' },
+];
+
+// 법제처 입법예고 데이터
+const LEGI_SEED = [
+  { id:'l1', law:'산업안전보건법 시행규칙 일부개정령안', ministry:'고용노동부', noticeDate:'2026-06-15', closingDate:'2026-07-05', period:'20일', summary:'근로자 정기교육 방법 다양화(온·오프라인 혼합) 및 위험작업 종사자 추가 교육시간 명확화', status:'검토중', dday: dday('2026-07-05'), link:'https://www.moleg.go.kr' },
+  { id:'l2', law:'중대재해 처벌 등에 관한 법률 시행령 일부개정령안', ministry:'고용노동부', noticeDate:'2026-06-10', closingDate:'2026-07-01', period:'21일', summary:'수급인 안전보건 수준 평가 연 1회 의무화 및 평가 기준 고시 위임근거 마련', status:'완료', dday: dday('2026-07-01'), link:'https://www.moleg.go.kr' },
+  { id:'l3', law:'화학물질관리법 일부개정법률안', ministry:'환경부', noticeDate:'2026-05-28', closingDate:'2026-06-17', period:'20일', summary:'화학사고예방관리계획서 변경사항 30일 내 제출 의무화 및 과태료 상향', status:'완료', dday: dday('2026-06-17'), link:'https://www.moleg.go.kr' },
+  { id:'l4', law:'위험물안전관리법 시행규칙 일부개정령안', ministry:'소방청', noticeDate:'2026-06-20', closingDate:'2026-07-10', period:'20일', summary:'제조소등 정기점검 항목에 부식·누설 의무 점검항목 추가', status:'검토전', dday: dday('2026-07-10'), link:'https://www.moleg.go.kr' },
+  { id:'l5', law:'산업안전보건법 일부개정법률안', ministry:'고용노동부', noticeDate:'2026-06-25', closingDate:'2026-07-15', period:'20일', summary:'유해위험작업 도급 금지 범위 확대 및 위반 시 처벌 강화', status:'검토전', dday: dday('2026-07-15'), link:'https://www.moleg.go.kr' },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+const state = {
+  screen: 'main',
+  site: '울산공장',
+  variant: '3a',
+  treeFilter: 'all',
+  treeOpen: {},
+  q: '',
+  statusFilter: 'all',
+  selectedId: null,
+  selectedEduId: null,
+  registerFilter: 'all',
+  selectedRegisterId: null,
+  legiFilter: 'all',
+  compliance: JSON.parse(JSON.stringify(COMPLIANCE_SEED)),
+  edu: JSON.parse(JSON.stringify(EDU_SEED)),
+  register: JSON.parse(JSON.stringify(REGISTER_SEED)),
+};
+
+let currentDraftMemo = '';
+let currentDraftResponse = '';
+
+function setState(update) {
+  const patch = typeof update === 'function' ? update(state) : update;
+  Object.assign(state, patch);
+  render();
+}
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function decorateCompliance(r) {
+  const sm = statusMeta(r.status);
+  const tm = typeMeta(r.type);
+  const dd = dday(r.effectiveDate);
+  const ddShow = r.revised && typeof dd === 'number' && dd >= 0;
+  const ddColor = dd != null && dd <= 14 ? '#D64545' : dd != null && dd <= 45 ? '#E08600' : '#7a8aa8';
+  return { ...r,
+    ddayNum: dd,
+    statusColor: sm.color, statusBg: sm.bg,
+    typeColor: tm.color, typeBg: tm.bg,
+    appliesMark: r.applies ? '●' : '○', appliesColor: r.applies ? '#2E9E5B' : '#c3bdb5',
+    revMark: r.revised ? '<span style="font-size:10px;font-weight:700;color:#F39200;background:#fdf3e3;border:1px solid #f3c87a;padding:1px 5px;border-radius:3px">개정</span>' : '<span style="color:#c3bdb5">–</span>',
+    effShort: r.effectiveDate ? (ddShow ? ('D-'+dd) : r.effectiveDate.slice(5)) : '상시',
+    ddayColor: ddShow ? ddColor : '#a7a199',
+    ddayWeight: ddShow ? '700' : '400',
+    ddayText: ddShow ? ('D-'+dd) : '',
+    ddayShow
+  };
+}
+
+function decorateEdu(e) {
+  const dd = dday(e.next);
+  let sc;
+  if (e.status === '완료') sc = { color:'#2E9E5B', bg:'#e7f4ec' };
+  else if (e.status === '지연') sc = { color:'#D64545', bg:'#fbe7e7' };
+  else sc = { color:'#E08600', bg:'#fdf0db' };
+  const km = e.kind === '신규' ? { color:'#1f3864', bg:'#e7ecf5' } : { color:'#7d756c', bg:'#f0eee9' };
+  let ddText, ddColor;
+  if (e.status === '완료') { ddText = '완료'; ddColor = '#2E9E5B'; }
+  else if (dd < 0) { ddText = 'D+'+(-dd); ddColor = '#D64545'; }
+  else { ddText = 'D-'+dd; ddColor = dd <= 14 ? '#D64545' : dd <= 30 ? '#E08600' : '#7d756c'; }
+  return { ...e, dd, statusColor: sc.color, statusBg: sc.bg, kindColor: km.color, kindBg: km.bg, ddayText, ddayColor };
+}
+
+function clabusStatusMeta(s) {
+  if (s === '결재완료') return { color:'#2E9E5B', bg:'#e7f4ec', icon:'✓' };
+  if (s === '결재중') return { color:'#E08600', bg:'#fdf0db', icon:'⟳' };
+  if (s === '작성중') return { color:'#7d756c', bg:'#f0eee9', icon:'✎' };
+  return { color:'#a7a199', bg:'#f3f1ee', icon:'○' };
+}
+
+// ─── RENDER: SIDEBAR ─────────────────────────────────────────────────────────
+
+function renderSidebar() {
+  const items = [
+    { key:'main', icon:'📊', label:'메인 대시보드' },
+    { key:'edu', icon:'🎓', label:'법정 안전교육 이수관리' },
+    { key:'comp', icon:'⚖️', label:'사업장 법규충족 대시보드' },
+    { key:'register', icon:'📝', label:'법령 검토등록' },
+  ];
+  const dimItems = [
+    { icon:'🧪', label:'위험성평가 관리' },
+    { icon:'📄', label:'MSDS 관리' },
+    { icon:'🌡️', label:'작업환경측정' },
+    { icon:'🗂️', label:'안전보건 문서함' },
+  ];
+  return `
+    <div style="display:flex;flex:none">
+      <div style="flex:1;text-align:center;padding:13px 0;font-size:13.5px;font-weight:700;color:#fff;background:#2f2926">메뉴</div>
+      <div style="flex:1;text-align:center;padding:13px 0;font-size:13.5px;font-weight:500;color:#9a8f86;background:#1c1816">즐겨찾기</div>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:8px 0">
+      <div class="side-item" style="color:#cdc4bb">
+        <span>🏠</span><span>메인화면</span>
+      </div>
+      <div style="padding:13px 18px 7px;font-size:10.5px;font-weight:700;color:#7d736a;letter-spacing:.06em">법규 컴플라이언스</div>
+      ${items.map(it => {
+        const active = it.key === state.screen;
+        return `<div class="side-item" data-nav="${it.key}" style="color:${active?'#F39200':'#cdc4bb'};font-weight:${active?'700':'400'};background:${active?'rgba(243,146,0,.10)':'transparent'};border-left:3px solid ${active?'#F39200':'transparent'}">
+          <span style="font-size:14px">${it.icon}</span>
+          <span style="flex:1">${it.label}</span>
+          ${active?'<span style="width:5px;height:5px;border-radius:50%;background:#F39200"></span>':''}
+        </div>`;
+      }).join('')}
+      <div style="padding:13px 18px 7px;font-size:10.5px;font-weight:700;color:#7d736a;letter-spacing:.06em">SHE 일반</div>
+      ${dimItems.map(it => `<div style="display:flex;align-items:center;gap:9px;padding:10px 18px;color:#6f655c;font-size:13px">
+        <span style="font-size:13px">${it.icon}</span><span>${it.label}</span>
+      </div>`).join('')}
+    </div>`;
+}
+
+// ─── RENDER: TOPBAR ──────────────────────────────────────────────────────────
+
+function renderTopnav() {
+  const items = ['안전작업허가','PSM','변경관리','SHE','MSDS','시스템 일반'];
+  return items.map(label => {
+    const active = label === 'SHE';
+    return `<div class="gnb-link" style="font-weight:${active?'700':'500'};color:${active?'#231f1c':'#8a847d'};border-bottom:3px solid ${active?'#F39200':'transparent'}">${label}</div>`;
+  }).join('');
+}
+
+// ─── RENDER: CONTENT TOPBAR ──────────────────────────────────────────────────
+
+const PAGE_TITLES = { main:'법규 준수 통합 대시보드', edu:'법정 안전교육 이수관리', comp:'사업장 법규충족 대시보드', register:'법령 검토등록' };
+const PAGE_CRUMBS = { main:'SHE › 법규 컴플라이언스', edu:'SHE › 법규 컴플라이언스 › 교육 이수관리', comp:'SHE › 법규 컴플라이언스 › 법규충족 대시보드', register:'SHE › 법규 컴플라이언스 › 법령 검토등록' };
+
+function renderContentTopbar() {
+  return `<div class="content-topbar">
+    <div>
+      <div style="font-size:11.5px;color:#9a948c;font-weight:500;margin-bottom:3px">${esc(PAGE_CRUMBS[state.screen])}</div>
+      <div style="font-size:21px;font-weight:900;color:#231f1c;letter-spacing:-.01em">${esc(PAGE_TITLES[state.screen])}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:12px;color:#9a948c">2026-06-30 10:22 기준</span>
+      <div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #d8d4ce;border-radius:6px;padding:0 12px;height:38px">
+        <span style="font-size:11.5px;color:#9a948c;font-weight:500">사업장</span>
+        <select id="site-select" style="border:none;background:transparent;font-size:13.5px;font-weight:700;color:#231f1c;outline:none;cursor:pointer">
+          <option ${state.site==='울산공장'?'selected':''}>울산공장</option>
+          <option ${state.site==='여수공장'?'selected':''}>여수공장</option>
+          <option ${state.site==='대전연구소'?'selected':''}>대전연구소</option>
+        </select>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── RENDER: SCREEN ① MAIN ──────────────────────────────────────────────────
+
+function renderMain() {
+  const allRows = state.compliance.map(decorateCompliance);
+  const total = allRows.length;
+  const okN = allRows.filter(r => r.status === '준수').length;
+  const progN = allRows.filter(r => r.status === '진행중').length;
+  const lackN = allRows.filter(r => r.status === '미흡').length;
+  const rate = Math.round((okN / total) * 100);
+  const rateRing = `conic-gradient(#F39200 ${rate}%, #46598a 0)`;
+  const riskCount = lackN + progN;
+
+  const allEdu = state.edu.map(decorateEdu);
+  const imminentEdu = allEdu.filter(e => (e.status === '예정' && e.dd <= 30) || e.status === '지연').sort((a,b) => a.dd - b.dd);
+  const revisionAlerts = allRows.filter(r => r.revised && r.ddayNum >= 0).sort((a,b) => a.ddayNum - b.ddayNum);
+  const responseTop = allRows.filter(r => r.status !== '준수').sort((a,b) => (a.status==='미흡'?0:1)-(b.status==='미흡'?0:1)).slice(0,5);
+  const trendData = [['1월',61],['2월',64],['3월',66],['4월',69],['5월',70],['6월',rate]];
+
+  return `<div class="content-pad">
+
+    <!-- stat cards -->
+    <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:14px;margin-bottom:16px">
+      <div style="background:#1f3864;border-radius:8px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;color:#fff">
+        <div>
+          <div style="font-size:12.5px;color:#b9c4dc;font-weight:500;margin-bottom:6px">전체 법규 준수율</div>
+          <div style="font-size:38px;font-weight:900;line-height:1">${rate}<span style="font-size:20px">%</span></div>
+          <div style="font-size:11.5px;color:#8fa0c4;margin-top:5px">해당 법규 ${total}건 기준</div>
+        </div>
+        <div style="width:78px;height:78px;border-radius:50%;background:${rateRing};display:flex;align-items:center;justify-content:center;flex:none">
+          <div style="width:56px;height:56px;border-radius:50%;background:#1f3864;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#F39200">준수</div>
+        </div>
+      </div>
+      ${[['준수',okN,'#2E9E5B'],['진행중',progN,'#E08600'],['미흡',lackN,'#D64545']].map(([label,val,color]) => `
+      <div style="background:#fff;border:1px solid #e0ddd8;border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;justify-content:center">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+          <span style="width:8px;height:8px;border-radius:2px;background:${color}"></span>
+          <span style="font-size:12.5px;color:#7d756c;font-weight:500">${label}</span>
+        </div>
+        <div style="font-size:30px;font-weight:900;color:#231f1c;line-height:1">${val}<span style="font-size:14px;color:#a7a199;font-weight:700">건</span></div>
+      </div>`).join('')}
+    </div>
+
+    <!-- row 2: risk list + trend chart -->
+    <div style="display:grid;grid-template-columns:1.45fr 1fr;gap:14px;margin-bottom:16px">
+      <div class="card">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="card-title">대응 필요 항목</span>
+            <span style="font-size:11px;font-weight:700;color:#fff;background:#D64545;border-radius:10px;padding:2px 8px">${riskCount}</span>
+          </div>
+          <span class="more-link" data-nav="comp">법규충족 현황 +more</span>
+        </div>
+        ${responseTop.map(r => `
+        <div class="row-hover" data-goto-comp="${r.id}" style="display:flex;align-items:center;gap:13px;padding:13px 18px;border-bottom:1px solid #f3f0ec;cursor:pointer">
+          <span class="badge" style="color:${r.statusColor};background:${r.statusBg};width:52px">${r.status}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13.5px;font-weight:700;color:#2a2522;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.articleName)}</div>
+            <div style="font-size:11.5px;color:#9a948c;margin-top:2px">${esc(r.lawShort)} · ${esc(r.article)} · 담당 ${esc(r.owner)}</div>
+          </div>
+          ${r.ddayShow ? `<span style="font-size:11.5px;font-weight:700;color:${r.ddayColor};flex:none">${r.ddayText}</span>` : ''}
+        </div>`).join('')}
+      </div>
+
+      <div class="card" style="display:flex;flex-direction:column">
+        <div class="card-header">
+          <span class="card-title">준수율 추이</span>
+          <div style="display:flex;gap:12px;font-size:11px;color:#8a847d">
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;background:#F39200;border-radius:2px;display:inline-block"></span>달성</span>
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:14px;height:0;border-top:2px dashed #1f3864;display:inline-block"></span>목표 90%</span>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;align-items:flex-end;gap:14px;padding:24px 22px 14px;position:relative;min-height:160px">
+          <div style="position:absolute;left:22px;right:22px;bottom:calc(14px + 28px + ${0.9 * 120}px);border-top:2px dashed #1f3864;opacity:.55"></div>
+          ${trendData.map(([label,val]) => {
+            const h = Math.round(val/100*120);
+            return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:7px;height:100%;justify-content:flex-end">
+              <div style="font-size:11px;font-weight:700;color:#c9760a">${val}%</div>
+              <div style="width:60%;max-width:30px;background:linear-gradient(#F7A92E,#F39200);border-radius:3px 3px 0 0;height:${h}px"></div>
+              <div style="font-size:11px;color:#9a948c">${label}</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- row 3: edu imminent + revision alerts -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">법정교육 임박 <span style="font-size:12px;color:#a7a199;font-weight:500">(D-30 이내)</span></span>
+          <span class="more-link" data-nav="edu">교육 이수관리 +more</span>
+        </div>
+        ${imminentEdu.length === 0 ? `<div style="padding:24px;text-align:center;color:#b5afa7;font-size:13px">임박 교육 없음</div>` :
+          imminentEdu.map(e => `
+          <div class="row-hover" data-nav="edu" style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid #f3f0ec;cursor:pointer">
+            <span class="badge" style="color:#fff;background:${e.ddayColor};width:50px">${e.ddayText}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700;color:#2a2522">${esc(e.course)}</div>
+              <div style="font-size:11.5px;color:#9a948c;margin-top:2px">${esc(e.name)} · ${esc(e.role)}</div>
+            </div>
+            <span style="font-size:12px;color:#7d756c;font-weight:500;flex:none">${e.next}</span>
+          </div>`).join('')}
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">개정 알림 <span style="font-size:12px;color:#a7a199;font-weight:500">(시행일 D-day)</span></span>
+          <span class="more-link" data-nav="comp">법규충족 현황 +more</span>
+        </div>
+        ${revisionAlerts.map(r => `
+        <div class="row-hover" data-goto-comp="${r.id}" style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid #f3f0ec;cursor:pointer">
+          <span class="badge" style="color:#fff;background:${r.ddayColor};width:50px">${r.ddayText}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700;color:#2a2522;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(r.articleName)}</div>
+            <div style="font-size:11.5px;color:#9a948c;margin-top:2px">${esc(r.lawShort)} · ${esc(r.article)}</div>
+          </div>
+          <span style="font-size:12px;color:#7d756c;font-weight:500;flex:none">${r.effectiveDate.slice(5)}</span>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── RENDER: SCREEN ② EDU ────────────────────────────────────────────────────
+
+function renderEdu() {
+  const allEdu = state.edu.map(decorateEdu);
+  const overdue = allEdu.filter(e => e.status === '지연');
+  const sel = allEdu.find(e => e.id === state.selectedEduId);
+  const monthDefs = [['2026-07','7월'],['2026-08','8월'],['2026-09','9월'],['2026-10','10월'],['2026-11','11월'],['2026-12','12월']];
+
+  return `<div class="content-pad">
+    ${overdue.length > 0 ? `
+    <div style="display:flex;align-items:center;gap:12px;background:#fbe7e7;border:1px solid #f1c4c4;border-radius:8px;padding:12px 16px;margin-bottom:14px">
+      <span style="font-size:18px">⚠️</span>
+      <div style="flex:1"><span style="font-weight:700;color:#b83232">교육 도래 경과 ${overdue.length}건</span> <span style="font-size:13px;color:#a85656">— 즉시 이수 처리가 필요합니다.</span></div>
+    </div>` : ''}
+
+    <!-- timeline -->
+    <div class="card" style="padding:16px 18px;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:700;color:#231f1c;margin-bottom:14px">교육 도래 일정 <span style="font-size:11.5px;color:#a7a199;font-weight:500">· 2026 하반기</span></div>
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+        ${monthDefs.map(([ym,label]) => {
+          const items = allEdu.filter(e => e.status !== '완료' && (e.next||'').slice(0,7) === ym);
+          return `<div class="timeline-card">
+            <div class="timeline-month">${label}</div>
+            <div style="flex:1;padding:8px;display:flex;flex-direction:column;gap:6px">
+              ${items.map(e => {
+                const color = e.status === '지연' ? '#D64545' : '#F39200';
+                const bg = e.status === '지연' ? '#fbe7e7' : '#fdf3e3';
+                return `<div class="timeline-item" style="background:${bg};border-left:3px solid ${color}">
+                  <div class="timeline-item-name">${esc(e.course)}</div>
+                  <div class="timeline-item-sub">${e.next.slice(5)} · ${e.ddayText}</div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- table + detail -->
+    <div style="display:grid;grid-template-columns:1fr 380px;gap:14px;align-items:start">
+      <div class="card">
+        <div style="padding:13px 18px;border-bottom:1px solid #ece9e5;font-size:15px;font-weight:700;color:#231f1c">
+          법정교육 대상자 <span style="font-size:12px;color:#a7a199;font-weight:500">${allEdu.length}명</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="min-width:760px">
+            <thead><tr>
+              <th style="text-align:left">대상자</th>
+              <th style="text-align:left">직책</th>
+              <th style="text-align:left">교육명</th>
+              <th style="text-align:center">종류</th>
+              <th style="text-align:center">차기도래</th>
+              <th style="text-align:center">D-day</th>
+              <th style="text-align:center">상태</th>
+            </tr></thead>
+            <tbody>
+              ${allEdu.map(e => `
+              <tr data-edu="${e.id}" class="${e.id === state.selectedEduId ? 'selected' : ''}">
+                <td style="font-weight:700;color:#2a2522">${esc(e.name)}</td>
+                <td style="color:#5c554e">${esc(e.role)}</td>
+                <td style="color:#5c554e">${esc(e.course)}</td>
+                <td style="text-align:center"><span style="font-size:11px;font-weight:700;color:${e.kindColor};background:${e.kindBg};padding:2px 8px;border-radius:3px">${e.kind}</span></td>
+                <td style="text-align:center;color:#5c554e">${e.next}</td>
+                <td style="text-align:center;font-weight:700;color:${e.ddayColor}">${e.ddayText}</td>
+                <td style="text-align:center"><span class="badge" style="color:${e.statusColor};background:${e.statusBg}">${e.status}</span></td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="detail-panel">
+        ${sel ? renderEduDetail(sel) : `<div class="detail-empty">
+          <div class="detail-empty-icon">📋</div>
+          <div class="detail-empty-text">대상자 행을 선택하면<br>상세·이수처리 패널이 표시됩니다.</div>
+        </div>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderEduDetail(e) {
+  const done = e.status === '완료';
+  return `<div>
+    <div style="padding:16px 18px;border-bottom:1px solid #ece9e5;background:#fbfaf8">
+      <div style="font-size:11px;color:#9a948c;font-weight:500;margin-bottom:4px">${esc(e.role)}</div>
+      <div style="font-size:17px;font-weight:900;color:#231f1c">${esc(e.name)}</div>
+    </div>
+    <div style="padding:16px 18px">
+      <div style="font-size:14px;font-weight:700;color:#2a2522;margin-bottom:3px">${esc(e.course)}</div>
+      <div style="display:flex;gap:6px;margin-bottom:16px">
+        <span style="font-size:11px;font-weight:700;color:${e.kindColor};background:${e.kindBg};padding:2px 8px;border-radius:3px">${e.kind}교육</span>
+        <span style="font-size:11px;font-weight:700;color:#7d756c;background:#f3f1ee;padding:2px 8px;border-radius:3px">주기 ${esc(e.cycle)}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div>
+          <div style="font-size:11px;color:#a7a199;font-weight:700;margin-bottom:4px">직전 이수일</div>
+          <div style="font-size:14px;font-weight:500;color:#3b3530">${e.last}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:#a7a199;font-weight:700;margin-bottom:4px">차기 도래일</div>
+          <div style="font-size:14px;font-weight:700;color:#231f1c">${e.next} <span style="font-size:11px;color:${e.ddayColor}">${e.ddayText}</span></div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#f8f6f3;border:1px solid #efece8;border-radius:6px;padding:10px 13px;margin-bottom:16px">
+        <span style="font-size:12.5px;color:#7d756c;font-weight:500">현재 상태</span>
+        <span class="badge" style="color:${e.statusColor};background:${e.statusBg}">${e.status}</span>
+      </div>
+      <div style="font-size:11px;color:#a7a199;font-weight:700;margin-bottom:6px">이수 증빙</div>
+      <a href="#" style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#1f3864;background:#eef1f7;border:1px solid #dbe2ef;border-radius:5px;padding:6px 10px;font-weight:500;margin-bottom:18px">🔗 ${esc(e.evidence)}</a>
+      <button id="mark-complete-btn" data-edu-id="${e.id}" style="width:100%;padding:11px;border-radius:7px;border:${done?'1.5px solid #2E9E5B':'none'};background:${done?'#e7f4ec':'#F39200'};color:${done?'#2E9E5B':'#fff'};font-weight:700;font-size:14px;cursor:${done?'default':'pointer'}">
+        ${done ? '이수 완료됨 ✓' : '이수 처리하기'}
+      </button>
+    </div>
+  </div>`;
+}
+
+// ─── RENDER: LAW DETAIL PANEL ────────────────────────────────────────────────
+
+function renderLawDetail(r, variant) {
+  const showHeader = variant !== 'inline';
+  const sm = statusMeta(r.status);
+  const tcolor = r.type === '법' ? '#1f3864' : r.type === '령' ? '#3a5a8c' : '#6b7fa3';
+  const appliesOn = !!r.applies;
+  const dd = r.ddayNum;
+  const ddShow = r.revised && typeof dd === 'number' && dd >= 0;
+  const ddColor = dd != null && dd <= 14 ? '#D64545' : dd != null && dd <= 45 ? '#E08600' : '#7a8aa8';
+  const statusOptions = ['준수', '진행중', '미흡'];
+  const draft = (state.selectedId === r.id) ? currentDraftMemo : (r.response || '');
+
+  return `<div style="display:flex;flex-direction:column;height:100%;min-height:0;font-family:inherit;color:#2a2522">
+    ${showHeader ? `<div style="display:flex;align-items:flex-start;gap:12px;padding:18px 20px 16px;border-bottom:1px solid #ece9e5;background:#fbfaf8">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:11px;font-weight:700;color:#fff;background:${tcolor};padding:2px 8px;border-radius:3px">${esc(r.type)}</span>
+          <span style="font-size:12px;color:#8a847d;font-weight:500">${esc(r.law)}</span>
+        </div>
+        <div style="font-size:17px;font-weight:700;line-height:1.35;color:#231f1c">${esc(r.article)} ${esc(r.articleName)}</div>
+      </div>
+      <button data-close-detail style="flex:none;width:30px;height:30px;border:1px solid #e3e1de;background:#fff;border-radius:5px;cursor:pointer;font-size:16px;color:#8a847d;line-height:1">✕</button>
+    </div>` : ''}
+
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px 26px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:7px">해당여부</div>
+          <button data-toggle-applies="${r.id}" style="display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:6px;cursor:pointer;font-size:13.5px;font-weight:700;${appliesOn ? 'color:#2E9E5B;background:#e7f4ec;border:1.5px solid #2E9E5B' : 'color:#9a948c;background:#f3f1ee;border:1.5px solid #e3e1de'}">
+            <span style="width:9px;height:9px;border-radius:50%;background:${appliesOn ? '#2E9E5B' : '#c3bdb5'}"></span>
+            ${appliesOn ? '해당' : '비해당'}
+          </button>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:7px">시행일자</div>
+          <div style="display:flex;align-items:center;gap:8px;height:34px">
+            <span style="font-size:14px;font-weight:500;color:#3b3530">${r.effectiveDate || '상시'}</span>
+            ${ddShow ? `<span style="font-size:11px;font-weight:700;color:#fff;background:${ddColor};padding:2px 7px;border-radius:3px">D-${dd}</span>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:7px">준수상태</div>
+        <div style="display:flex;gap:6px">
+          ${statusOptions.map(v => {
+            const active = r.status === v;
+            const m = statusMeta(v);
+            return `<button data-set-status="${r.id}" data-status-val="${v}" style="flex:1;font-size:13px;font-weight:700;padding:8px 4px;border-radius:6px;cursor:pointer;${active ? `color:${m.color};background:${m.bg};border:1.5px solid ${m.color}` : 'color:#9a948c;background:#f6f4f1;border:1.5px solid transparent'}">${v}</button>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:7px">적용요건 (해당사유)</div>
+        <div style="font-size:13.5px;line-height:1.6;color:#4a443e;background:#f8f6f3;border:1px solid #efece8;border-radius:6px;padding:11px 13px">${esc(r.requirement)}</div>
+      </div>
+
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:8px">준수근거 · 증빙</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px">
+          ${(r.basis||[]).map(b => `<a href="#" style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#1f3864;background:#eef1f7;border:1px solid #dbe2ef;border-radius:5px;padding:6px 10px;font-weight:500">🔗 ${esc(b.name)}</a>`).join('')}
+        </div>
+      </div>
+
+      <div style="margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em">개정 전후 비교</div>
+          ${r.revised ? '<span style="font-size:10.5px;font-weight:700;color:#fff;background:#F39200;padding:1px 7px;border-radius:3px">개정</span>' : ''}
+        </div>
+        ${r.revised ? `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="border:1px solid #efece8;border-radius:6px;overflow:hidden">
+            <div style="font-size:11px;font-weight:700;color:#8a847d;background:#f4f1ed;padding:6px 10px;border-bottom:1px solid #efece8">개정 전</div>
+            <div style="font-size:12.5px;line-height:1.6;color:#857d75;padding:10px 11px;text-decoration:line-through;text-decoration-color:#d2ccc4">${esc(r.revisionBefore||'')}</div>
+          </div>
+          <div style="border:1px solid #f3d9b3;border-radius:6px;overflow:hidden;background:#fffaf2">
+            <div style="font-size:11px;font-weight:700;color:#c9760a;background:#fdedd6;padding:6px 10px;border-bottom:1px solid #f3d9b3">개정 후</div>
+            <div style="font-size:12.5px;line-height:1.6;color:#3b3530;padding:10px 11px;font-weight:500">${esc(r.revisionAfter||'')}</div>
+          </div>
+        </div>` : `<div style="font-size:13px;color:#a7a199;background:#f8f6f3;border:1px dashed #e3e1de;border-radius:6px;padding:11px 13px">최근 개정 이력 없음</div>`}
+      </div>
+
+      <div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:8px">자사 대응현황</div>
+        <textarea id="law-detail-memo" data-law-id="${r.id}" style="width:100%;min-height:84px;resize:vertical;border:1px solid #e3e1de;border-radius:6px;padding:10px 12px;font-size:13px;line-height:1.6;font-family:inherit;color:#3b3530;outline:none">${esc(draft)}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <span style="font-size:11.5px;color:#a7a199">담당자 · ${esc(r.owner)} / 최종갱신 ${esc(r.updated)}</span>
+          <button data-save-memo="${r.id}" style="font-size:12.5px;font-weight:700;color:#fff;background:#F39200;border:none;border-radius:5px;padding:7px 16px;cursor:pointer">저장</button>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:10px">대응 이력</div>
+        ${(r.history||[]).map((h, i) => `
+        <div style="display:flex;gap:11px;padding-bottom:14px">
+          <div style="flex:none;display:flex;flex-direction:column;align-items:center">
+            <span style="width:9px;height:9px;border-radius:50%;background:${i===0?'#F39200':'#c3bdb5'};margin-top:4px"></span>
+            ${i < (r.history.length-1) ? '<span style="width:1px;flex:1;background:#ece9e5;margin-top:3px"></span>' : ''}
+          </div>
+          <div style="flex:1;min-width:0;padding-bottom:2px">
+            <div style="font-size:11.5px;color:#a7a199;font-weight:500;margin-bottom:2px">${h.date}</div>
+            <div style="font-size:13px;line-height:1.5;color:#3b3530">${esc(h.text)}</div>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ─── RENDER: SCREEN ③ COMPLIANCE ─────────────────────────────────────────────
+
+function renderComp() {
+  const allRows = state.compliance.map(decorateCompliance);
+  const total = allRows.length;
+  const laws = [...new Set(state.compliance.map(r => r.lawShort))];
+
+  let filtered = [...allRows];
+  if (state.treeFilter !== 'all') filtered = filtered.filter(r => r.lawShort === state.treeFilter);
+  if (state.statusFilter !== 'all') filtered = filtered.filter(r => r.status === state.statusFilter);
+  if (state.q.trim()) { const q = state.q.trim(); filtered = filtered.filter(r => (r.lawShort+r.article+r.articleName+r.requirement).includes(q)); }
+
+  const selectedRec = allRows.find(r => r.id === state.selectedId) || null;
+  const tableTitle = state.treeFilter === 'all' ? '전체 법규 준수현황' : state.treeFilter;
+
+  const variantInfo = { '3a':'트리 + 표 + 우측 드로어', '3b':'필터 + 고정 분할 상세', '3c':'트리 + 표 인라인 확장' };
+  const statusChipsHtml = [['all','전체'],['준수','준수'],['진행중','진행중'],['미흡','미흡']].map(([v,label]) => {
+    const on = state.statusFilter === v;
+    return `<button data-status-chip="${v}" class="chip-btn ${on?'active':''}">${label}</button>`;
+  }).join('');
+
+  function renderTree(withToggle) {
+    const treeAllActive = state.treeFilter === 'all';
+    let html = `<div data-tree-filter="all" style="padding:10px 16px;font-size:13px;cursor:pointer;border-bottom:1px solid #f3f0ec;font-weight:${treeAllActive?'700':'500'};color:${treeAllActive?'#1f3864':'#3b3530'};background:${treeAllActive?'#eef1f7':'transparent'}">전체 법규 <span style="float:right;color:#a7a199">${total}</span></div>`;
+    laws.forEach(law => {
+      const items = allRows.filter(r => r.lawShort === law);
+      const active = state.treeFilter === law;
+      const open = !!state.treeOpen[law];
+      html += `<div>
+        <div ${withToggle?`data-tree-toggle="${law}"`:`data-tree-filter="${law}"`} style="display:flex;align-items:center;gap:8px;padding:10px 16px;font-size:13px;cursor:pointer;font-weight:${active?'700':'500'};color:${active?'#1f3864':'#3b3530'};background:${active?'#eef1f7':'transparent'}">
+          ${withToggle?`<span style="font-size:10px;color:#a7a199;transform:${open?'rotate(90deg)':'none'};display:inline-block;transition:transform .15s">▶</span>`:''}
+          <span style="flex:1" ${withToggle?`data-tree-filter="${law}"`:''} >${esc(law)}</span>
+          <span style="font-size:11px;color:#a7a199">${items.length}</span>
+        </div>
+        ${withToggle && open ? items.map(it => `
+        <div data-row-click="${it.id}" class="row-hover" style="display:flex;align-items:center;gap:8px;padding:8px 16px 8px 30px;font-size:12px;color:#6b635b;cursor:pointer">
+          <span style="width:6px;height:6px;border-radius:50%;background:${it.statusColor};flex:none"></span>
+          <span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.article)} ${esc(it.articleName)}</span>
+        </div>`).join('') : ''}
+      </div>`;
+    });
+    return html;
+  }
+
+  function renderTableRows3a() {
+    return filtered.map(r => `
+    <tr data-row-click="${r.id}" class="${r.id === state.selectedId ? 'selected' : ''}">
+      <td style="font-weight:700;color:#2a2522">${esc(r.lawShort)}</td>
+      <td style="text-align:center"><span style="font-size:11px;font-weight:700;color:${r.typeColor};background:${r.typeBg};padding:2px 7px;border-radius:3px">${r.type}</span></td>
+      <td style="color:#3b3530">${esc(r.article)} ${esc(r.articleName)}</td>
+      <td style="text-align:center;color:${r.appliesColor};font-size:14px">${r.appliesMark}</td>
+      <td style="text-align:center"><span class="badge" style="color:${r.statusColor};background:${r.statusBg}">${r.status}</span></td>
+      <td style="text-align:center">${r.revMark}</td>
+      <td style="text-align:center;font-size:11.5px;color:${r.ddayColor};font-weight:${r.ddayWeight}">${r.effShort}</td>
+      <td style="color:#5c554e">${esc(r.owner)}</td>
+    </tr>`).join('');
+  }
+
+  if (state.variant === '3a') {
+    return `<div class="content-pad">
+      ${renderVariantSwitcher(variantInfo)}
+      <div style="display:grid;grid-template-columns:230px 1fr;gap:14px;position:relative">
+        <div class="card" style="align-self:start">
+          <div style="padding:12px 16px;border-bottom:1px solid #ece9e5;font-size:13.5px;font-weight:700;color:#231f1c">법규 분류</div>
+          ${renderTree(true)}
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #ece9e5;flex-wrap:wrap">
+            <span style="font-size:15px;font-weight:700;color:#231f1c">${esc(tableTitle)} <span style="font-size:12px;color:#a7a199;font-weight:500">${filtered.length}건</span></span>
+            <div style="display:flex;gap:6px">${statusChipsHtml}</div>
+          </div>
+          <div style="overflow-x:auto">
+            <table style="min-width:880px">
+              <thead><tr>
+                <th style="text-align:left">법령명</th>
+                <th style="text-align:center">구분</th>
+                <th style="text-align:left">조항</th>
+                <th style="text-align:center">해당</th>
+                <th style="text-align:center">준수상태</th>
+                <th style="text-align:center">개정</th>
+                <th style="text-align:center">시행일</th>
+                <th style="text-align:left">담당자</th>
+              </tr></thead>
+              <tbody>${renderTableRows3a()}</tbody>
+            </table>
+          </div>
+        </div>
+        ${selectedRec ? `
+        <div style="position:absolute;top:0;right:0;bottom:0;width:440px;box-shadow:-8px 0 24px rgba(0,0,0,.12);border-radius:8px;overflow:hidden;background:#fff;z-index:10">
+          ${renderLawDetail(selectedRec, 'drawer')}
+        </div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  if (state.variant === '3b') {
+    const lawChipDefs = [['all','전체'], ...laws.map(l => [l, l.replace('처벌법','법').replace('안전관리법','관리법').replace('산업안전보건법','산안법')])];
+    const lawChipsHtml = lawChipDefs.map(([v,label]) => {
+      const on = state.treeFilter === v;
+      return `<button data-law-chip="${v}" class="chip-btn ${on?'active-orange':''}">${label}</button>`;
+    }).join('');
+
+    return `<div class="content-pad">
+      ${renderVariantSwitcher(variantInfo)}
+      <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e0ddd8;border-radius:8px;padding:12px 16px;margin-bottom:14px;flex-wrap:wrap">
+        <input id="law-search" value="${esc(state.q)}" placeholder="법령·조항 검색" style="flex:1;min-width:180px;border:1px solid #e0ddd8;border-radius:6px;padding:8px 12px;font-size:13px;outline:none"/>
+        <div style="display:flex;gap:6px">${statusChipsHtml}</div>
+        <div style="display:flex;gap:6px">${lawChipsHtml}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 420px;gap:14px;align-items:start">
+        <div class="card">
+          <div style="padding:12px 16px;border-bottom:1px solid #ece9e5;font-size:15px;font-weight:700;color:#231f1c">${esc(tableTitle)} <span style="font-size:12px;color:#a7a199;font-weight:500">${filtered.length}건</span></div>
+          <div style="overflow-x:auto">
+            <table style="min-width:520px">
+              <thead><tr>
+                <th style="text-align:left">법령 · 조항</th>
+                <th style="text-align:center">준수상태</th>
+                <th style="text-align:center">시행일</th>
+                <th style="text-align:left">담당</th>
+              </tr></thead>
+              <tbody>
+                ${filtered.map(r => `
+                <tr data-row-click="${r.id}" class="${r.id === state.selectedId ? 'selected-blue' : ''}">
+                  <td>
+                    <div style="font-weight:700;color:#2a2522">${esc(r.lawShort)} <span style="color:#a7a199;font-weight:500">· ${esc(r.article)}</span></div>
+                    <div style="font-size:11.5px;color:#9a948c;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px">${esc(r.articleName)}</div>
+                  </td>
+                  <td style="text-align:center"><span class="badge" style="color:${r.statusColor};background:${r.statusBg}">${r.status}</span></td>
+                  <td style="text-align:center;font-size:11.5px;color:${r.ddayColor};font-weight:${r.ddayWeight}">${r.effShort}</td>
+                  <td style="color:#5c554e">${esc(r.owner)}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="detail-panel" style="min-height:480px;display:flex;flex-direction:column">
+          ${selectedRec ? renderLawDetail(selectedRec, 'dock') : `<div class="detail-empty" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div class="detail-empty-icon">⚖️</div>
+            <div class="detail-empty-text">법규 행을 선택하면 조항 상세·근거·<br>개정 비교·대응현황이 표시됩니다.</div>
+          </div>`}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // 3c: inline expand
+  return `<div class="content-pad">
+    ${renderVariantSwitcher(variantInfo)}
+    <div style="display:grid;grid-template-columns:230px 1fr;gap:14px">
+      <div class="card" style="align-self:start">
+        <div style="padding:12px 16px;border-bottom:1px solid #ece9e5;font-size:13.5px;font-weight:700;color:#231f1c">법규 분류</div>
+        ${renderTree(false)}
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #ece9e5;flex-wrap:wrap">
+          <span style="font-size:15px;font-weight:700;color:#231f1c">${esc(tableTitle)} <span style="font-size:12px;color:#a7a199;font-weight:500">${filtered.length}건</span></span>
+          <div style="display:flex;gap:6px">${statusChipsHtml}</div>
+        </div>
+        <table>
+          <thead><tr>
+            <th style="text-align:left">법령명</th>
+            <th style="text-align:left">조항</th>
+            <th style="text-align:center">준수상태</th>
+            <th style="text-align:center">개정</th>
+            <th style="text-align:center">시행일</th>
+            <th style="text-align:center"></th>
+          </tr></thead>
+          <tbody>
+            ${filtered.map(r => {
+              const expanded = r.id === state.selectedId;
+              return `<tr data-row-click="${r.id}" class="${expanded ? 'selected' : ''}">
+                <td style="font-weight:700;color:#2a2522">${esc(r.lawShort)} <span style="font-size:10px;font-weight:700;color:${r.typeColor};background:${r.typeBg};padding:1px 6px;border-radius:3px;margin-left:4px">${r.type}</span></td>
+                <td style="color:#3b3530">${esc(r.article)} <span style="color:#a7a199">${esc(r.articleName)}</span></td>
+                <td style="text-align:center"><span class="badge" style="color:${r.statusColor};background:${r.statusBg}">${r.status}</span></td>
+                <td style="text-align:center">${r.revMark}</td>
+                <td style="text-align:center;font-size:11.5px;color:${r.ddayColor};font-weight:${r.ddayWeight}">${r.effShort}</td>
+                <td style="text-align:center;color:#a7a199;font-size:11px">${expanded ? '▲ 닫기' : '▼ 상세'}</td>
+              </tr>
+              ${expanded ? `<tr><td colspan="6" style="padding:0;background:#faf8f5;border-bottom:2px solid #ece9e5">
+                <div style="padding:4px 14px 14px">
+                  ${renderLawDetail(r, 'inline')}
+                </div>
+              </td></tr>` : ''}`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderVariantSwitcher(variantInfo) {
+  const btns = ['3a','3b','3c'].map(v => {
+    const labels = { '3a':'우측 드로어', '3b':'분할 도크', '3c':'인라인 확장' };
+    const on = v === state.variant;
+    return `<button data-variant="${v}" class="variant-btn ${on?'active':'inactive'}"><span style="font-weight:900">${v}</span> ${labels[v]}</button>`;
+  }).join('');
+  return `<div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="font-size:11.5px;font-weight:700;color:#9a948c;letter-spacing:.04em">레이아웃 변형</span>
+    <div style="display:flex;gap:6px;background:#fff;border:1px solid #d8d4ce;border-radius:8px;padding:4px">${btns}</div>
+    <span style="font-size:12px;color:#a7a199">${variantInfo[state.variant]}</span>
+  </div>`;
+}
+
+// ─── RENDER: SCREEN ④ REGISTER ───────────────────────────────────────────────
+
+function renderRegister() {
+  const legiFilterOptions = [['all','전체'],['검토전','검토전'],['검토중','검토중'],['완료','완료']];
+  const filteredLegi = state.legiFilter === 'all' ? LEGI_SEED : LEGI_SEED.filter(l => l.status === state.legiFilter);
+  const registerFilterOptions = [['all','전체'],['완료','완료'],['진행중','진행중'],['미흡','미흡']];
+  const filteredRegister = state.registerFilter === 'all' ? state.register : state.register.filter(r => r.status === state.registerFilter);
+  const selReg = state.register.find(r => r.id === state.selectedRegisterId);
+
+  function legiStatusStyle(s) {
+    if (s === '완료') return { color:'#2E9E5B', bg:'#e7f4ec' };
+    if (s === '검토중') return { color:'#E08600', bg:'#fdf0db' };
+    return { color:'#a7a199', bg:'#f3f1ee' };
+  }
+
+  return `<div class="content-pad">
+
+    <!-- 법제처 입법예고 섹션 -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="card-title">📋 법제처 입법예고 현황</span>
+          <span style="font-size:11px;color:#a7a199;font-weight:500">개정 예정 법규 모니터링</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="display:flex;gap:6px">
+            ${legiFilterOptions.map(([v,label]) => {
+              const on = state.legiFilter === v;
+              return `<button data-legi-filter="${v}" class="chip-btn ${on?'active':''}">${label}</button>`;
+            }).join('')}
+          </div>
+          <a href="https://www.moleg.go.kr/lawinfo/makingList.mo?mid=a10104010000" target="_blank" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:#1f3864;background:#eef1f7;border:1px solid #dbe2ef;border-radius:5px;padding:6px 11px">
+            🔗 법제처 바로가기
+          </a>
+        </div>
+      </div>
+      <div>
+        ${filteredLegi.map(l => {
+          const ss = legiStatusStyle(l.status);
+          const ddNum = l.dday;
+          const isPast = ddNum < 0;
+          return `<div class="legi-row">
+            <div style="flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:52px">
+              <span class="badge" style="color:${ss.color};background:${ss.bg}">${l.status}</span>
+              ${!isPast ? `<span style="font-size:10px;font-weight:700;color:${ddNum<=5?'#D64545':ddNum<=14?'#E08600':'#7a8aa8'}">D-${ddNum}</span>` : `<span style="font-size:10px;color:#c3bdb5">마감</span>`}
+            </div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13.5px;font-weight:700;color:#231f1c;margin-bottom:3px">${esc(l.law)}</div>
+              <div style="font-size:12px;color:#9a948c;margin-bottom:5px">${l.ministry} · 예고 ${l.noticeDate} ~ ${l.closingDate} (${l.period})</div>
+              <div style="font-size:12.5px;color:#5c554e;line-height:1.5">${esc(l.summary)}</div>
+            </div>
+            <div style="flex:none;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+              <a href="${l.link}" target="_blank" style="font-size:11.5px;color:#1f3864;background:#eef1f7;border:1px solid #dbe2ef;border-radius:4px;padding:4px 9px;font-weight:500">원문 보기</a>
+              <button data-legi-review="${l.id}" style="font-size:11.5px;color:#fff;background:${l.status==='완료'?'#7d756c':'#F39200'};border:none;border-radius:4px;padding:4px 9px;cursor:pointer;font-weight:600">
+                ${l.status==='완료'?'검토 완료':'검토 등록'}
+              </button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- 법령 검토등록 관리 -->
+    <div style="display:grid;grid-template-columns:1fr ${selReg?'400px':'0px'};gap:${selReg?'14px':'0'};align-items:start;transition:grid-template-columns .2s">
+      <div class="card">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span class="card-title">법령 검토등록 관리</span>
+            <div style="display:flex;gap:6px">
+              ${registerFilterOptions.map(([v,label]) => {
+                const on = state.registerFilter === v;
+                const sm = v==='완료'?{c:'#2E9E5B',b:'#e7f4ec'}:v==='진행중'?{c:'#E08600',b:'#fdf0db'}:v==='미흡'?{c:'#D64545',b:'#fbe7e7'}:null;
+                return `<button data-reg-filter="${v}" style="font-size:11.5px;padding:5px 11px;border-radius:14px;cursor:pointer;font-weight:${on?'700':'500'};border:1px solid ${on?(sm?sm.c:'#1f3864'):'#e0ddd8'};background:${on?(sm?sm.b:'#eef1f7'):'#fff'};color:${on?(sm?sm.c:'#1f3864'):'#7d756c'}">${label}</button>`;
+              }).join('')}
+            </div>
+          </div>
+          <button data-upload-new style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#fff;background:#F39200;border:none;border-radius:6px;padding:8px 14px">
+            ＋ 검토 등록
+          </button>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="min-width:700px">
+            <thead><tr>
+              <th style="text-align:left">법령 · 조항</th>
+              <th style="text-align:left">검토일</th>
+              <th style="text-align:left">담당자</th>
+              <th style="text-align:center">결재상태 (클래버스)</th>
+              <th style="text-align:center">첨부</th>
+              <th style="text-align:center">상태</th>
+            </tr></thead>
+            <tbody>
+              ${filteredRegister.map(r => {
+                const sm = statusMeta(r.status === '완료' ? '준수' : r.status === '진행중' ? '진행중' : '미흡');
+                const cm = clabusStatusMeta(r.clabusStatus);
+                return `<tr data-reg-row="${r.id}" class="${r.id === state.selectedRegisterId ? 'selected' : ''}">
+                  <td>
+                    <div style="font-weight:700;color:#2a2522">${esc(r.lawShort)} ${esc(r.article)}</div>
+                    <div style="font-size:11.5px;color:#9a948c;margin-top:2px">${esc(r.articleName)}</div>
+                  </td>
+                  <td style="color:#5c554e;white-space:nowrap">${r.reviewDate}</td>
+                  <td style="color:#5c554e">${esc(r.reviewer)}</td>
+                  <td style="text-align:center">
+                    <span class="clabus-badge" style="color:${cm.color};background:${cm.bg}">
+                      ${cm.icon} ${esc(r.clabusStatus)}
+                    </span>
+                    ${r.clabusRef ? `<div style="font-size:10.5px;color:#a7a199;margin-top:2px">${r.clabusRef}</div>` : ''}
+                  </td>
+                  <td style="text-align:center">
+                    ${r.attachment ? `<span style="font-size:11.5px;color:#1f3864;background:#eef1f7;border:1px solid #dbe2ef;border-radius:3px;padding:2px 7px">📎 ${esc(r.attachment)}</span>` : '<span style="color:#c3bdb5;font-size:12px">없음</span>'}
+                  </td>
+                  <td style="text-align:center"><span class="badge" style="color:${sm.color};background:${sm.bg}">${r.status}</span></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      ${selReg ? renderRegDetail(selReg) : ''}
+    </div>
+  </div>`;
+}
+
+function renderRegDetail(r) {
+  const sm = statusMeta(r.status === '완료' ? '준수' : r.status === '진행중' ? '진행중' : '미흡');
+  const cm = clabusStatusMeta(r.clabusStatus);
+  return `<div class="detail-panel">
+    <div style="padding:16px 18px;border-bottom:1px solid #ece9e5;background:#fbfaf8;display:flex;align-items:flex-start;justify-content:space-between">
+      <div>
+        <div style="font-size:11px;color:#9a948c;font-weight:500;margin-bottom:4px">${esc(r.lawShort)}</div>
+        <div style="font-size:16px;font-weight:900;color:#231f1c">${esc(r.article)} ${esc(r.articleName)}</div>
+      </div>
+      <button data-close-reg style="width:28px;height:28px;border:1px solid #e3e1de;background:#fff;border-radius:5px;cursor:pointer;font-size:14px;color:#8a847d">✕</button>
+    </div>
+    <div style="padding:16px 18px;display:flex;flex-direction:column;gap:14px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#a7a199;margin-bottom:5px">검토 요약</div>
+        <div style="font-size:13px;line-height:1.6;color:#4a443e;background:#f8f6f3;border:1px solid #efece8;border-radius:6px;padding:10px 12px">${esc(r.summary)}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#a7a199;margin-bottom:4px">검토일</div>
+          <div style="font-size:13.5px;color:#3b3530;font-weight:500">${r.reviewDate}</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#a7a199;margin-bottom:4px">담당자</div>
+          <div style="font-size:13.5px;color:#3b3530;font-weight:500">${esc(r.reviewer)}</div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#a7a199;margin-bottom:5px">상태</div>
+        <span class="badge" style="color:${sm.color};background:${sm.bg}">${r.status}</span>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#a7a199;margin-bottom:8px">클래버스 결재 연동</div>
+        <div style="background:#f8f6f3;border:1px solid #efece8;border-radius:8px;padding:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <span style="font-size:13px;font-weight:700;color:#231f1c">결재 상태</span>
+            <span class="clabus-badge" style="color:${cm.color};background:${cm.bg}">${cm.icon} ${esc(r.clabusStatus)}</span>
+          </div>
+          ${r.clabusRef ? `<div style="font-size:12px;color:#7d756c;margin-bottom:10px">결재 참조번호: <span style="font-weight:700;color:#1f3864">${r.clabusRef}</span></div>` : ''}
+          <button style="width:100%;padding:9px;border-radius:6px;border:1.5px solid #1f3864;background:${r.clabusRef?'#fff':'#1f3864'};color:${r.clabusRef?'#1f3864':'#fff'};font-weight:700;font-size:13px;cursor:pointer">
+            ${r.clabusRef ? '🔗 클래버스 결재 조회' : '📤 클래버스 결재 요청'}
+          </button>
+        </div>
+      </div>
+      ${r.attachment ? `<div>
+        <div style="font-size:11px;font-weight:700;color:#a7a199;margin-bottom:5px">첨부파일</div>
+        <a href="#" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#1f3864;background:#eef1f7;border:1px solid #dbe2ef;border-radius:5px;padding:7px 11px;font-weight:500">📎 ${esc(r.attachment)}</a>
+      </div>` : `<div class="upload-zone" data-upload-for="${r.id}">
+        <div style="font-size:24px;margin-bottom:8px">📂</div>
+        <div style="font-size:13px;font-weight:600">첨부파일 업로드</div>
+        <div style="font-size:12px;margin-top:4px">검토 문서·근거자료를 여기에 드래그하거나 클릭하세요</div>
+      </div>`}
+    </div>
+  </div>`;
+}
+
+// ─── RENDER: MAIN ────────────────────────────────────────────────────────────
+
+function renderContent() {
+  let screenHtml = '';
+  if (state.screen === 'main') screenHtml = renderMain();
+  else if (state.screen === 'edu') screenHtml = renderEdu();
+  else if (state.screen === 'comp') screenHtml = renderComp();
+  else if (state.screen === 'register') screenHtml = renderRegister();
+  return renderContentTopbar() + screenHtml;
+}
+
+function render() {
+  document.getElementById('topnav').innerHTML = renderTopnav();
+  document.getElementById('sidebar').innerHTML = renderSidebar();
+  document.getElementById('content').innerHTML = renderContent();
+  bindEvents();
+
+  // restore textarea focus/value after re-render
+  const ta = document.getElementById('law-detail-memo');
+  if (ta) {
+    ta.addEventListener('input', e => { currentDraftMemo = e.target.value; });
+  }
+}
+
+// ─── EVENTS ──────────────────────────────────────────────────────────────────
+
+function bindEvents() {
+  document.getElementById('site-select').addEventListener('change', e => setState({ site: e.target.value }));
+
+  document.addEventListener('click', handleClick, { once: true });
+  // use event delegation on content and sidebar
+}
+
+function handleClick(e) {
+  const target = e.target.closest('[data-nav],[data-edu],[data-row-click],[data-goto-comp],[data-status-chip],[data-law-chip],[data-variant],[data-tree-filter],[data-tree-toggle],[data-toggle-applies],[data-set-status],[data-save-memo],[data-close-detail],[data-legi-filter],[data-reg-filter],[data-reg-row],[data-close-reg],[data-legi-review],[data-upload-new],[data-upload-for],[#mark-complete-btn]');
+  // handled below
+}
+
+document.addEventListener('click', function(e) {
+  const t = e.target;
+
+  const nav = t.closest('[data-nav]');
+  if (nav) { setState({ screen: nav.dataset.nav, selectedId: null, selectedEduId: null }); return; }
+
+  const gotoComp = t.closest('[data-goto-comp]');
+  if (gotoComp) { setState({ screen:'comp', selectedId: gotoComp.dataset.gotoComp }); return; }
+
+  const eduRow = t.closest('[data-edu]');
+  if (eduRow) { setState({ selectedEduId: eduRow.dataset.edu }); return; }
+
+  const markComplete = t.closest('#mark-complete-btn');
+  if (markComplete) {
+    const id = markComplete.dataset.eduId;
+    if (!id) return;
+    const newEdu = state.edu.map(e => {
+      if (e.id !== id || e.status === '완료') return e;
+      const yrs = e.cycle === '분기' ? 0.25 : 2;
+      const d = new Date('2026-06-30T00:00:00');
+      d.setMonth(d.getMonth() + Math.round(yrs * 12));
+      return { ...e, status:'완료', last:'2026-06-30', next: d.toISOString().slice(0,10) };
+    });
+    setState({ edu: newEdu });
+    return;
+  }
+
+  const rowClick = t.closest('[data-row-click]');
+  if (rowClick) {
+    const id = rowClick.dataset.rowClick;
+    const newId = state.selectedId === id ? null : id;
+    if (newId) {
+      const rec = state.compliance.find(r => r.id === newId);
+      if (rec) currentDraftMemo = rec.response || '';
+    }
+    setState({ selectedId: newId });
+    return;
+  }
+
+  const variant = t.closest('[data-variant]');
+  if (variant) { setState({ variant: variant.dataset.variant, selectedId: null }); return; }
+
+  const treeFilter = t.closest('[data-tree-filter]');
+  if (treeFilter) { setState({ treeFilter: treeFilter.dataset.treeFilter, selectedId: null }); return; }
+
+  const treeToggle = t.closest('[data-tree-toggle]');
+  if (treeToggle && !t.closest('[data-tree-filter]')) {
+    const law = treeToggle.dataset.treeToggle;
+    const newOpen = { ...state.treeOpen, [law]: !state.treeOpen[law] };
+    setState({ treeOpen: newOpen });
+    return;
+  }
+
+  const statusChip = t.closest('[data-status-chip]');
+  if (statusChip) { setState({ statusFilter: statusChip.dataset.statusChip }); return; }
+
+  const lawChip = t.closest('[data-law-chip]');
+  if (lawChip) { setState({ treeFilter: lawChip.dataset.lawChip }); return; }
+
+  const toggleApplies = t.closest('[data-toggle-applies]');
+  if (toggleApplies) {
+    const id = toggleApplies.dataset.toggleApplies;
+    const newCompliance = state.compliance.map(r => r.id === id ? { ...r, applies: !r.applies, updated:'2026-06-30' } : r);
+    setState({ compliance: newCompliance });
+    return;
+  }
+
+  const setStatus = t.closest('[data-set-status]');
+  if (setStatus) {
+    const id = setStatus.dataset.setStatus;
+    const val = setStatus.dataset.statusVal;
+    const newCompliance = state.compliance.map(r => r.id === id ? { ...r, status: val, updated:'2026-06-30' } : r);
+    setState({ compliance: newCompliance });
+    return;
+  }
+
+  const saveMemo = t.closest('[data-save-memo]');
+  if (saveMemo) {
+    const id = saveMemo.dataset.saveMemo;
+    const ta = document.getElementById('law-detail-memo');
+    const text = ta ? ta.value : currentDraftMemo;
+    const newCompliance = state.compliance.map(r => r.id === id ? { ...r, response: text, updated:'2026-06-30' } : r);
+    currentDraftMemo = text;
+    setState({ compliance: newCompliance });
+    return;
+  }
+
+  const closeDetail = t.closest('[data-close-detail]');
+  if (closeDetail) { setState({ selectedId: null }); return; }
+
+  const legiFilter = t.closest('[data-legi-filter]');
+  if (legiFilter) { setState({ legiFilter: legiFilter.dataset.legiFilter }); return; }
+
+  const regFilter = t.closest('[data-reg-filter]');
+  if (regFilter) { setState({ registerFilter: regFilter.dataset.regFilter }); return; }
+
+  const regRow = t.closest('[data-reg-row]');
+  if (regRow) {
+    const id = regRow.dataset.regRow;
+    setState({ selectedRegisterId: state.selectedRegisterId === id ? null : id });
+    return;
+  }
+
+  const closeReg = t.closest('[data-close-reg]');
+  if (closeReg) { setState({ selectedRegisterId: null }); return; }
+
+  const legiReview = t.closest('[data-legi-review]');
+  if (legiReview) {
+    // Simulate opening the review dialog — just highlight action
+    alert('법제처 입법예고 검토 등록 화면으로 이동합니다.\n(실제 연동 시 법령 검토등록 화면과 연결됩니다)');
+    return;
+  }
+
+  const uploadNew = t.closest('[data-upload-new]');
+  if (uploadNew) {
+    alert('검토 등록 다이얼로그가 열립니다.\n(실제 구현 시 모달로 법령·담당자·요약·첨부파일을 입력합니다)');
+    return;
+  }
+
+  const uploadFor = t.closest('[data-upload-for]');
+  if (uploadFor) {
+    alert('파일 업로드 다이얼로그가 열립니다.\n(실제 구현 시 파일 선택 → 서버 업로드 → 클래버스 문서 연결)');
+    return;
+  }
+});
+
+// search input
+document.addEventListener('input', function(e) {
+  if (e.target.id === 'law-search') {
+    setState({ q: e.target.value });
+  }
+  if (e.target.id === 'law-detail-memo') {
+    currentDraftMemo = e.target.value;
+  }
+});
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+
+render();
+</script>
+</body>
+</html>
