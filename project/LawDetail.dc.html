@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  .ld-scroll::-webkit-scrollbar{width:8px}
+  .ld-scroll::-webkit-scrollbar-thumb{background:#d9d6d2;border-radius:4px}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;height:100%;min-height:0;background:#ffffff;font-family:'Noto Sans KR',sans-serif;color:#2a2522;border-left:1px solid #e3e1de">
+
+  <sc-if value="{{ showHeader }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;align-items:flex-start;gap:12px;padding:18px 20px 16px;border-bottom:1px solid #ece9e5;background:#fbfaf8">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:11px;font-weight:700;color:#ffffff;background:{{ typeBg }};padding:2px 8px;border-radius:3px">{{ typeBadge }}</span>
+        <span style="font-size:12px;color:#8a847d;font-weight:500">{{ law }}</span>
+      </div>
+      <div style="font-size:17px;font-weight:700;line-height:1.35;color:#231f1c">{{ title }}</div>
+    </div>
+    <button onClick="{{ onClose }}" style="flex:none;width:30px;height:30px;border:1px solid #e3e1de;background:#fff;border-radius:5px;cursor:pointer;font-size:16px;color:#8a847d;line-height:1">✕</button>
+  </div>
+  </sc-if>
+
+  <div class="ld-scroll" style="flex:1;min-height:0;overflow-y:auto;padding:18px 20px 26px">
+
+    <!-- 상태 컨트롤 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:7px">해당여부</div>
+        <button onClick="{{ onToggleApplies }}" style="{{ appliesBtnStyle }}">
+          <span style="{{ appliesDotStyle }}"></span>{{ appliesLabel }}
+        </button>
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:7px">시행일자</div>
+        <div style="display:flex;align-items:center;gap:8px;height:34px">
+          <span style="font-size:14px;font-weight:500;color:#3b3530">{{ effectiveText }}</span>
+          <sc-if value="{{ ddayShow }}" hint-placeholder-val="{{ true }}">
+            <span style="font-size:11px;font-weight:700;color:#fff;background:{{ ddayColor }};padding:2px 7px;border-radius:3px">{{ ddayText }}</span>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:7px">준수상태</div>
+      <div style="display:flex;gap:6px">
+        <sc-for list="{{ statusBtns }}" as="b" hint-placeholder-count="3">
+          <button onClick="{{ b.onClick }}" style="{{ b.style }}">{{ b.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 적용요건 -->
+    <div style="margin-bottom:18px">
+      <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:7px">적용요건 (해당사유)</div>
+      <div style="font-size:13.5px;line-height:1.6;color:#4a443e;background:#f8f6f3;border:1px solid #efece8;border-radius:6px;padding:11px 13px">{{ requirement }}</div>
+    </div>
+
+    <!-- 준수근거 -->
+    <div style="margin-bottom:18px">
+      <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:8px">준수근거 · 증빙</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
+        <sc-for list="{{ basis }}" as="b" hint-placeholder-count="2">
+          <a href="#" style="display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#1f3864;text-decoration:none;background:#eef1f7;border:1px solid #dbe2ef;border-radius:5px;padding:6px 10px;font-weight:500">
+            <span style="font-size:13px">🔗</span>{{ b.name }}
+          </a>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- 개정 전후 비교 -->
+    <div style="margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em">개정 전후 비교</div>
+        <sc-if value="{{ revised }}" hint-placeholder-val="{{ true }}">
+          <span style="font-size:10.5px;font-weight:700;color:#fff;background:#F39200;padding:1px 7px;border-radius:3px">개정</span>
+        </sc-if>
+      </div>
+      <sc-if value="{{ revised }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div style="border:1px solid #efece8;border-radius:6px;overflow:hidden">
+            <div style="font-size:11px;font-weight:700;color:#8a847d;background:#f4f1ed;padding:6px 10px;border-bottom:1px solid #efece8">개정 전</div>
+            <div style="font-size:12.5px;line-height:1.6;color:#857d75;padding:10px 11px;text-decoration:line-through;text-decoration-color:#d2ccc4">{{ revisionBefore }}</div>
+          </div>
+          <div style="border:1px solid #f3d9b3;border-radius:6px;overflow:hidden;background:#fffaf2">
+            <div style="font-size:11px;font-weight:700;color:#c9760a;background:#fdedd6;padding:6px 10px;border-bottom:1px solid #f3d9b3">개정 후</div>
+            <div style="font-size:12.5px;line-height:1.6;color:#3b3530;padding:10px 11px;font-weight:500">{{ revisionAfter }}</div>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ notRevised }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:13px;color:#a7a199;background:#f8f6f3;border:1px dashed #e3e1de;border-radius:6px;padding:11px 13px">최근 개정 이력 없음</div>
+      </sc-if>
+    </div>
+
+    <!-- 대응현황 메모 -->
+    <div style="margin-bottom:18px">
+      <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:8px">자사 대응현황</div>
+      <textarea value="{{ draft }}" onChange="{{ onDraftChange }}" placeholder="대응 조치 내용을 입력하세요" style="width:100%;min-height:84px;resize:vertical;border:1px solid #e3e1de;border-radius:6px;padding:10px 12px;font-size:13px;line-height:1.6;font-family:'Noto Sans KR',sans-serif;color:#3b3530;outline:none"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <span style="font-size:11.5px;color:#a7a199">담당자 · {{ owner }} / 최종갱신 {{ updated }}</span>
+        <button onClick="{{ onSave }}" style="font-size:12.5px;font-weight:700;color:#fff;background:#F39200;border:none;border-radius:5px;padding:7px 16px;cursor:pointer">저장</button>
+      </div>
+    </div>
+
+    <!-- 이력 -->
+    <div>
+      <div style="font-size:11px;font-weight:700;color:#a7a199;letter-spacing:.04em;margin-bottom:10px">대응 이력</div>
+      <div style="display:flex;flex-direction:column;gap:0">
+        <sc-for list="{{ history }}" as="h" hint-placeholder-count="3">
+          <div style="display:flex;gap:11px;padding-bottom:14px;position:relative">
+            <div style="flex:none;display:flex;flex-direction:column;align-items:center">
+              <span style="width:9px;height:9px;border-radius:50%;background:{{ h.dot }};margin-top:4px"></span>
+              <span style="width:1px;flex:1;background:#ece9e5;margin-top:3px"></span>
+            </div>
+            <div style="flex:1;min-width:0;padding-bottom:2px">
+              <div style="font-size:11.5px;color:#a7a199;font-weight:500;margin-bottom:2px">{{ h.date }}</div>
+              <div style="font-size:13px;line-height:1.5;color:#3b3530">{{ h.text }}</div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:440,&quot;height&quot;:680},&quot;rec&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;variant&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;drawer&quot;,&quot;dock&quot;,&quot;inline&quot;],&quot;default&quot;:&quot;drawer&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null},&quot;onToggleApplies&quot;:{&quot;editor&quot;:null},&quot;onSetStatus&quot;:{&quot;editor&quot;:null},&quot;onSaveMemo&quot;:{&quot;editor&quot;:null}}">
+class Component extends DCLogic {
+  state = { draft: '' };
+
+  componentDidMount() {
+    this.setState({ draft: (this.props.rec && this.props.rec.response) || '' });
+  }
+  componentDidUpdate(prev) {
+    const a = prev.rec && prev.rec.id;
+    const b = this.props.rec && this.props.rec.id;
+    if (a !== b) this.setState({ draft: (this.props.rec && this.props.rec.response) || '' });
+  }
+
+  statusMeta(s) {
+    if (s === '준수') return { color: '#2E9E5B', bg: '#e7f4ec' };
+    if (s === '진행중') return { color: '#E08600', bg: '#fdf0db' };
+    return { color: '#D64545', bg: '#fbe7e7' };
+  }
+
+  renderVals() {
+    const rec = this.props.rec || {};
+    const variant = this.props.variant || 'drawer';
+    const showHeader = variant !== 'inline';
+    const tcolor = rec.type === '법' ? '#1f3864' : rec.type === '령' ? '#3a5a8c' : '#6b7fa3';
+
+    const sm = this.statusMeta(rec.status);
+    const statusOptions = ['준수', '진행중', '미흡'];
+    const statusBtns = statusOptions.map(v => {
+      const active = rec.status === v;
+      const m = this.statusMeta(v);
+      const style = `flex:1;font-size:13px;font-weight:700;padding:8px 4px;border-radius:6px;cursor:pointer;`
+        + (active
+          ? `color:${m.color};background:${m.bg};border:1.5px solid ${m.color}`
+          : `color:#9a948c;background:#f6f4f1;border:1.5px solid transparent`);
+      return { label: v, style, onClick: () => this.props.onSetStatus && this.props.onSetStatus(rec.id, v) };
+    });
+
+    const appliesOn = !!rec.applies;
+    const appliesBtnStyle = `display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 14px;border-radius:6px;cursor:pointer;font-size:13.5px;font-weight:700;`
+      + (appliesOn
+        ? `color:#2E9E5B;background:#e7f4ec;border:1.5px solid #2E9E5B`
+        : `color:#9a948c;background:#f3f1ee;border:1.5px solid #e3e1de`);
+    const appliesDotStyle = `width:9px;height:9px;border-radius:50%;background:${appliesOn ? '#2E9E5B' : '#c3bdb5'}`;
+
+    const ddayShow = rec.revised && typeof rec.dday === 'number' && rec.dday >= 0;
+    const ddayColor = rec.dday <= 14 ? '#D64545' : rec.dday <= 45 ? '#E08600' : '#7a8aa8';
+
+    return {
+      showHeader,
+      title: rec.article ? (rec.article + ' ' + (rec.articleName || '')) : (rec.articleName || ''),
+      law: rec.law || '',
+      typeBadge: rec.type || '',
+      typeBg: tcolor,
+      requirement: rec.requirement || '',
+      basis: rec.basis || [],
+      revised: !!rec.revised,
+      notRevised: !rec.revised,
+      revisionBefore: rec.revisionBefore || '',
+      revisionAfter: rec.revisionAfter || '',
+      history: (rec.history || []).map((h, i) => ({ ...h, dot: i === 0 ? '#F39200' : '#c3bdb5' })),
+      owner: rec.owner || '-',
+      updated: rec.updated || '-',
+      effectiveText: rec.effectiveDate || '상시',
+      ddayShow,
+      ddayText: ddayShow ? ('D-' + rec.dday) : '',
+      ddayColor,
+      appliesLabel: appliesOn ? '해당' : '비해당',
+      appliesBtnStyle,
+      appliesDotStyle,
+      statusBtns,
+      draft: this.state.draft,
+      onDraftChange: (e) => this.setState({ draft: e.target.value }),
+      onSave: () => this.props.onSaveMemo && this.props.onSaveMemo(rec.id, this.state.draft),
+      onToggleApplies: () => this.props.onToggleApplies && this.props.onToggleApplies(rec.id),
+      onClose: () => this.props.onClose && this.props.onClose(),
+    };
+  }
+}
+</script>
+</body>
+</html>
